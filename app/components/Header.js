@@ -1,22 +1,11 @@
 import React, {Component} from 'react';
-import {StyleSheet, Text, View} from 'react-native';
+import {Text, View} from 'react-native';
+import {headerStyles} from '../utils/Colors'
 
+// Header is a simple function that creates a header for the page given input text
 const Header = ({ title }) => (
-  <View style = {styles.headerContainer}>
-    <Text style ={styles.headerText}>{title.toUpperCase()}</Text>
+  <View style = {headerStyles.headerContainer}>
+    <Text style ={headerStyles.headerText}>{title.toUpperCase()}</Text>
   </View>)
-
-
-const styles = StyleSheet.create({
-  headerContainer: {
-    marginTop: 40,
-    justifyContent: 'flex-start'
-  },
-  headerText: {
-    color: 'white',
-    fontSize: 22,
-    fontWeight: '500'
-  }
-});
 
 export default Header;

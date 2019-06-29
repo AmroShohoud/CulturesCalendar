@@ -1,34 +1,23 @@
 import React, {Component} from 'react';
-import {Platform, StyleSheet, Text,
+import {Platform, Text,
   View, ScrollView, StatusBar} from 'react-native';
-import {LinearGradient} from 'expo';
-import {primaryGradientArray} from './utils/Colors';
+import {LinearGradient} from 'expo-linear-gradient';
+import {primaryGradientArray, mainStyles} from './utils/Colors';
 import Header from './components/Header';
 import Cal from './components/Cal';
 
+// Main is the container for our app pages
 export default class Main extends React.Component {
   render () {
     return (
-    <LinearGradient colors={primaryGradientArray} style={styles.container}>
+    <LinearGradient colors={primaryGradientArray} style={mainStyles.container}>
       <View>
         <Header title = "Cultures Calendar" />
       </View>
-      <View style = {styles.calContainer}>
+      <View style = {mainStyles.calContainer}>
         <Cal />
       </View>
     </LinearGradient>
     );
   }
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center'
-  },
-  calContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  }
-});

@@ -1,45 +1,96 @@
 import React, {Component} from 'react';
-import {StyleSheet, View} from 'react-native';
+import {View, Text} from 'react-native';
 import {Calendar,
   CalendarList,
   Agenda} from 'react-native-calendars';
+import {calStyles, calTheme} from '../utils/Colors'
 
+// Cal is the main calendar component that is central to the app
 class Cal extends React.Component {
+  constructor(props) {
+    super(props)
+     this.state = {
+      test: '',
+      url: 'https://calendarific.com/api/v2/holidays?',
+      api: '840729768871697006fe16d7b9292bdf83e0a658',
+      country: 'US',
+      year: '2019',
+      type: 'religious',
+      storedData: false,
+      holidays: {},
+      markers: {}
+    };
+  }
+
+  // check if data has already been fetched and stored
+  // TODO: if have persistent data storage just pull this (no fetch required)
+  // TODO: if user modifies settings, rerun fetch
+  checkStoredData() {
+    return this.state.storedData
+  }
+
+  // parameters will be defined by user to narrow down holiday selection
+  createWebAddress() {
+    apiParam = ''
+    countryParam = ''
+    yearParam = ''
+    typeParam = ''
+    if (this.state.type) { apiParam = "api_key=" + this.state.api }
+    if (this.state.country) { countryParam = "country=" + this.state.country }
+    if (this.state.year) { yearParam = "year=" + this.state.year }
+    if (this.state.type) { typeParam = "type=" + this.state.type }
+    const ret = [this.state.url, apiParam, countryParam, yearParam, typeParam]
+    return ret.join('&');
+  }
+
+  // Put holidays into format to pass into the Calendar component for marking dates of holidays
+  createDateMarkers() {
+    localMarkers = {}
+
+    // Format of objects to be passed into Calendar component's 'markedDates'
+    // {'date': {dots: [{key: xxx, color: xxx, description: xxx},
+    // {key: yyy, color: yyy, description: yyy}]}}
+
+    var holidaysLength = this.state.holidays.length;
+    for (var i = 0; i < holidaysLength; i++) {
+      holiday = this.state.holidays[i]
+      localMarkers[holiday.date.iso] = {dots: [{key: holiday.name, color: 'green'}]}
+    }
+    this.setState({markers: localMarkers})
+  }
+
+  // on mount pull our holiday data
+  componentDidMount() {
+    if (!this.checkStoredData()) {
+      this.setState({test: 'asfasd3463'})
+      webAddress = this.createWebAddress()
+     fetch(webAddress)
+        .then(response => {
+          return response.json();
+        })
+        .then(myJson => {
+          this.setState({holidays: myJson.response.holidays})
+          this.createDateMarkers()
+      }).catch(err => {
+        console.log(err) //TODO check this
+      });
+    }
+  }
+
   render() {
     return (
       <View>
         <Calendar
-          style = {styles.test}
-          theme = {theme}
+          style = {calStyles.background}
+          theme = {calTheme}
+          markedDates={this.state.markers}
+          markingType={'multi-dot'}
           onDayPress={(day) => {
-            console.log('selected day', day)}}/>
+            console.log(day) }}
+        />
       </View>
     );
   }
-}
-
-const styles = StyleSheet.create({
-  container: {
-    height: 600,
-    width: 400,
-    marginTop: 40
-  },
-  calendar: {
-    backgroundColor: 'lightblue'
-  },
-  test: {
-    opacity: 0.6
-  }
-})
-
-const theme = {
-  calendarBackground: 'white',
-    textDayFontSize: 20,
-    textMonthFontSize: 22,
-    textDayHeaderFontSize: 20,
-    textDayFontWeight: '500',
-    textMonthFontWeight: 'bold',
-    textDayHeaderFontWeight: '500',
 }
 
 export default Cal;
