@@ -18,7 +18,8 @@ class Cal extends React.Component {
       type: 'religious',
       storedData: false,
       holidays: {},
-      markers: {}
+      markers: {},
+      curName: {}
     };
   }
 
@@ -54,15 +55,22 @@ class Cal extends React.Component {
     var holidaysLength = this.state.holidays.length;
     for (var i = 0; i < holidaysLength; i++) {
       holiday = this.state.holidays[i]
-      localMarkers[holiday.date.iso] = {dots: [{key: holiday.name, color: 'green'}]}
+      if (holiday.date.iso in localMarkers) {
+        // Be able to incorporate multiple holidays on same day
+        localMarkers[holiday.date.iso].dots.push({key: holiday.name, color:'green'})
+        console.log(localMarkers[holiday.date.iso])
+      }
+      else {
+        localMarkers[holiday.date.iso] = {dots: [{key: holiday.name, color: 'green'}]}
+      }
     }
     this.setState({markers: localMarkers})
+    console.log(localMarkers)
   }
 
   // on mount pull our holiday data
   componentDidMount() {
     if (!this.checkStoredData()) {
-      this.setState({test: 'asfasd3463'})
       webAddress = this.createWebAddress()
      fetch(webAddress)
         .then(response => {
@@ -72,7 +80,7 @@ class Cal extends React.Component {
           this.setState({holidays: myJson.response.holidays})
           this.createDateMarkers()
       }).catch(err => {
-        console.log(err) //TODO check this
+        console.log(err) //TODO check this and add modal that shows error message
       });
     }
   }
