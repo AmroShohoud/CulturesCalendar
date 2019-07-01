@@ -44,6 +44,14 @@ export const calStyles = StyleSheet.create({
   },
   background: {
     opacity: 0.6
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    padding: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 4,
+    borderColor: 'rgba(0, 0, 0, 0.1)',
   }
 })
 
