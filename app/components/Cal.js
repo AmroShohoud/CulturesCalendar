@@ -20,9 +20,8 @@ class Cal extends React.Component {
       country: 'US',
       year: '2019',
       type: 'religious',
-      storedData: false,
-      markers: {},
       modalVisible: false,
+      markers: {},
       curHolidays: {dots: [{key: ''}]},
       curDate: ''
     };
@@ -116,6 +115,7 @@ class Cal extends React.Component {
     this.setState({modalVisible: visible});
   }
 
+  // Activate the modal and prepare the holiday data to be rendered
   showHolidayDetails = (day) => {
     if (day['dateString'] in this.state.markers) {
       this.setModalVisible(true)
@@ -124,7 +124,20 @@ class Cal extends React.Component {
     }
   }
 
-  //-------------------------------------------------------------------------
+  // Render holidays in the modal
+  renderHolidays = () => {
+    return this.state.curHolidays.dots.map((holidayInfo, i) => {
+      return (
+        <View key = {i}>
+          <Text>{holidayInfo.key}</Text>
+          <Text>{holidayInfo.desc}</Text>
+          <Text></Text>
+        </View>
+      );
+    });
+  }
+
+  //------------------------------------------------------------------------
 
   render() {
     return (
@@ -141,8 +154,7 @@ class Cal extends React.Component {
             swipeDirection = 'down'>
             <View style={calStyles.modalContent}>
               <Text>{this.state.curDate}</Text>
-              <Text>{this.state.curHolidays.dots[0].key}</Text>
-              <Text>{this.state.curHolidays.dots[0].desc}</Text>
+              { this.renderHolidays() }
               <Button title="Close" onPress= {() =>
                 {this.setModalVisible(false)}} />
             </View>
