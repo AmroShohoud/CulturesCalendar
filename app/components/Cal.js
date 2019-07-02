@@ -1,5 +1,5 @@
 import React, {Component} from 'react';
-import {StyleSheet,
+import {AsyncStorage,
   Button,
   Text,
   TouchableHighlight,
@@ -21,7 +21,6 @@ class Cal extends React.Component {
       year: '2019',
       type: 'religious',
       storedData: false,
-      holidays: {},
       markers: {},
       modalVisible: false,
       curHolidays: {dots: [{key: ''}]},
@@ -30,12 +29,6 @@ class Cal extends React.Component {
   }
 
   // Calendar-specific functions for initial rendering ---------------------
-  // check if data has already been fetched and stored
-  // TODO: if have persistent data storage just pull this (no fetch required)
-  // TODO: if user modifies settings, rerun fetch
-  checkStoredData = () => {
-    return this.state.storedData
-  }
 
   // parameters will be defined by user to narrow down holiday selection
   createWebAddress = () => {
@@ -52,16 +45,16 @@ class Cal extends React.Component {
   }
 
   // Put holidays into format to pass into the Calendar component for marking dates of holidays
-  createDateMarkers = () => {
+  createDateMarkers = (holidays) => {
     localMarkers = {}
 
     // Format of objects to be passed into Calendar component's 'markedDates'
     // {'date': {dots: [{key: xxx, color: xxx, description: xxx},
     // {key: yyy, color: yyy, description: yyy}]}}
 
-    var holidaysLength = this.state.holidays.length;
+    var holidaysLength = holidays.length;
     for (var i = 0; i < holidaysLength; i++) {
-      holiday = this.state.holidays[i]
+      holiday = holidays[i]
       markerObj = {key: holiday.name, desc: holiday. description, color: 'green'}
       if (holiday.date.iso in localMarkers) {
         // Be able to incorporate multiple holidays on same day
@@ -72,24 +65,51 @@ class Cal extends React.Component {
       }
     }
     this.setState({markers: localMarkers})
+    this._storeData(JSON.stringify(localMarkers))
   }
 
   // on mount pull our holiday data
-  componentDidMount = () => {
-    if (!this.checkStoredData()) {
+  componentDidMount = async () => {
+    // see if data is already stored on device
+    await this._retrieveData()
+
+    // if not, pull the data using Calendarific API
+    if (Object.keys(this.state.markers).length == 0) {
       webAddress = this.createWebAddress()
-     fetch(webAddress)
+      fetch(webAddress)
         .then(response => {
           return response.json();
         })
         .then(myJson => {
-          this.setState({holidays: myJson.response.holidays})
-          this.createDateMarkers()
+          this.createDateMarkers(myJson.response.holidays)
       }).catch(err => {
         console.log(err) //TODO check this and add modal that shows error message
       });
     }
   }
+  // -----------------------------------------------------------------------
+
+  // AsyncStorage ----------------------------------------------------------
+
+  // TODO: if user modifies settings, rerun fetch
+  _storeData = async (input) => {
+    try {
+      await AsyncStorage.setItem('markers', input);
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
+  _retrieveData = async () => {
+    try {
+      const value = await AsyncStorage.getItem('markers');
+      this.setState({markers: JSON.parse(value)})
+    } catch (error) {
+      // Error retrieving data
+      console.log(error)
+    }
+  }
+  // -----------------------------------------------------------------------
 
   // Modal-specific Functions ----------------------------------------------
   setModalVisible = (visible) => {
