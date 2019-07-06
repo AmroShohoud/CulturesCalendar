@@ -64,3 +64,15 @@ export const calTheme = {
     textMonthFontWeight: 'bold',
     textDayHeaderFontWeight: '500',
 }
+
+// Selection.js
+export const selStyles = StyleSheet.create({
+  modalContent: {
+    backgroundColor: 'white',
+    padding: 22,
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+    borderRadius: 4,
+    borderColor: 'rgba(0, 0, 0, 0.1)',
+  }
+})

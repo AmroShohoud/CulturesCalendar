@@ -1,6 +1,7 @@
 import React, {Component} from 'react'
 import {AsyncStorage,
   Button,
+  ScrollView,
   Text,
   TouchableHighlight,
   View} from 'react-native'
@@ -99,39 +100,31 @@ class Cal extends React.Component {
     this.setState({years: [prev, cur, next]})
   }
 
-  // on mount pull our holiday data
-  componentDidMount = async () => {
-    try {
-      await AsyncStorage.removeItem('markers');
-      await AsyncStorage.removeItem('params');
-    }
-    catch(exception) {
-    }
-    // see if data is already stored on device
+  getHolidayData = async () => {
+     // see if data is already stored on device
     storedMarkers = await _retrieveData('markers')
     if (storedMarkers != null) {
       this.setState({markers: storedMarkers})
     }
     // if not, pull the data using Calendarific API
     else {
-      storedParams = await _retrieveData('params')
-      countries = {'US': ['religious'], 'EG': ['all']}
+      storedCountries = await _retrieveData('countries')
 
       // Setting default country and type if they haven't been set in AsyncStorage
-      if (storedParams != null) {
-        countries = storedParams.countries
+      if (storedCountries == null) {
+        countries = {'US': ['religious'], 'EG': ['all']}
+        _storeData('countries', JSON.stringify(countries))
+      }
+      else {
+        countries = storedCountries
       }
 
       await this.setState({countries: countries})
       await this.setYears()
-      params = {
-        countries: this.state.countries,
-        years: this.state.years
-      }
-      _storeData('params', JSON.stringify(params))
 
       allHolidays = []
       urls = this.createWebAddresses()
+      console.log(urls)
       for (var i = 0; i < urls.length; i++) {
         url = urls[i].url
         holidays = await fetch(url)
@@ -148,6 +141,11 @@ class Cal extends React.Component {
       }
       this.createDateMarkers(allHolidays)
     }
+  }
+
+  // on mount pull our holiday data
+  componentDidMount = async () => {
+    await this.getHolidayData()
   }
   // -----------------------------------------------------------------------
 
@@ -180,45 +178,48 @@ class Cal extends React.Component {
   }
 
   //------------------------------------------------------------------------
+  // For scrolling ---------------------------------------------------------
+  handleOnScroll = (event) => {
+    this.setState({
+      scrollOffset: event.nativeEvent.contentOffset.y,
+    })
+  }
 
-  // User Selection Modal-specific Functions -------------------------------
-  setSelModalVisible = (visible) => {
-    this.setState({selModalVisible: visible})
+  handleScrollTo = (p) => {
+    if (this.scrollViewRef) {
+      this.scrollViewRef.scrollTo(p);
+    }
   }
   // -----------------------------------------------------------------------
-
   render() {
     return (
       <View>
-          <Calendar
-            style = {calStyles.background}
-            theme = {calTheme}
-            markedDates = {this.state.markers}
-            markingType = {'multi-dot'}
-            onDayPress = {(day) => {
-              this.showHolidayDetails(day) }}
-          />
-          <Button title = "mybuttin" onPress = {() => {
-              this.setSelModalVisible(true) }}
-          />
-          <Modal isVisible={this.state.dayModalVisible}
-            swipeDirection = 'down'>
+        <Calendar
+          style = {calStyles.background}
+          theme = {calTheme}
+          markedDates = {this.state.markers}
+          markingType = {'multi-dot'}
+          onDayPress = {(day) => {
+            this.showHolidayDetails(day) }}
+        />
+        <Selection getHolidayData = {() => {
+          this.getHolidayData() }} />
+        <Modal isVisible={this.state.dayModalVisible}
+          scrollTo={this.handleScrollTo}
+        >
+          <ScrollView
+            ref={ref => (this.scrollViewRef = ref)}
+            onScroll={this.handleOnScroll}
+          >
             <View style={calStyles.modalContent}>
               <Text>{this.state.curDate}</Text>
               { this.renderHolidays() }
               <Button title="Close" onPress= {() =>
                 {this.setDayModalVisible(false)}} />
             </View>
-          </Modal>
-          <Modal isVisible={this.state.selModalVisible}
-            swipeDirection = 'down'>
-            <View style = {calStyles.modalContent}>
-              <Selection />
-              <Button title="Close" onPress= {() =>
-                {this.setSelModalVisible(false)}} />
-            </View>
-          </Modal>
-        </View>
+          </ScrollView>
+        </Modal>
+      </View>
     );
   }
 }

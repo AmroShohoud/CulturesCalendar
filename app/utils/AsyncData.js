@@ -26,6 +26,15 @@ export async function _retrieveData(data) {
     return result
   }
 
+export async function _deleteData(key) {
+    try {
+      await AsyncStorage.removeItem(key);
+    }
+    catch(exception) {
+      console.log(error)
+    }
+  }
+
 export function isEmpty(obj) {
     for(var key in obj) {
         if(obj.hasOwnProperty(key))
