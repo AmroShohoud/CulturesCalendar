@@ -102,6 +102,25 @@ class Selection extends React.Component {
   // ---------------------------------------------------------------------
 
   // For rendering -------------------------------------------------------
+  // type list under countries where type of holiday selection is allowed
+  buildTypeList = (countryInfo) => {
+    types = ['religious', 'observance', 'national']
+    return types.map((type, i) => {
+      return (
+        <CheckBox key = {countryInfo.name.concat(type)}
+          title={type}
+          checked={this.isSelectedType(countryInfo.code, type)}
+          onPress = {() => {
+            this.setSelectedType(countryInfo.code, type)
+          }}
+          onIconPress = {() => {
+            this.setSelectedType(countryInfo.code, type)
+          }}
+        />
+      )
+    })
+  }
+  // the country list for user selection
   buildCountryList = () => {
     return countryOptions.map((countryInfo, i) => {
       if (countryInfo.code == 'US' ||
@@ -121,16 +140,7 @@ class Selection extends React.Component {
 
               }}
             />
-            <CheckBox
-              title={"religious"}
-              checked={this.isSelectedType(countryInfo.code, 'religious')}
-              onPress = {() => {
-                this.setSelectedType(countryInfo.code, 'religious')
-              }}
-              onIconPress = {() => {
-                this.setSelectedType(countryInfo.code, 'religious')
-              }}
-            />
+            {this.buildTypeList(countryInfo)}
           </View>
         )
       }
