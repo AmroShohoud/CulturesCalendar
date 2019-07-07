@@ -35,15 +35,15 @@ class Cal extends React.Component {
 
   // parameters will be defined by user to narrow down holiday selection
   createWebAddresses = () => {
-    urls = []
-    apiParam = "api_key=" + this.state.api
+    var urls = []
+    var apiParam = "api_key=" + this.state.api
     var localCountries = Object.keys(this.state.countries)
 
     for (var i = 0; i < this.state.years.length; i++) {
-      yearParam = "&year=" + this.state.years[i]
+      var yearParam = "&year=" + this.state.years[i]
       for (var j = 0; j < localCountries.length; j++) {
-        country = localCountries[j]
-        countryParam = "&country=" + country
+        var country = localCountries[j]
+        var countryParam = "&country=" + country
         var types = this.state.countries[country]
         for (var k = 0; k < types.length; k++) {
           var typeParam = ''
@@ -60,17 +60,18 @@ class Cal extends React.Component {
 
   // Put holidays into format to pass into the Calendar component for marking dates of holidays
   createDateMarkers = (holidayArray) => {
-    localMarkers = {}
+    var localMarkers = {}
 
     // Format of objects to be passed into Calendar component's 'markedDates'
-    // {'date': {dots: [{key: xxx, color: xxx, description: xxx},
-    // {key: yyy, color: yyy, description: yyy}]}}
+    // {'date': {dots: [{key: xxx, name: xxx, color: xxx, description: xxx},
+    // {key: yyy, name: yyy, color: yyy, description: yyy}]}}
 
     for (var i = 0; i < holidayArray.length; i++) {
       for (var j = 0; j < holidayArray[i].holidays.length; j++) {
-        holiday = holidayArray[i].holidays[j]
-        markerObj = {
-          key: holiday.name,
+        var holiday = holidayArray[i].holidays[j]
+        var markerObj = {
+          key: i + "" + j,
+          name: holiday.name,
           desc: holiday.description,
           country: holidayArray[i].country,
           color: 'green'
@@ -78,7 +79,8 @@ class Cal extends React.Component {
         // Be able to incorporate multiple holidays on same day
         if (holiday.date.iso in localMarkers) {
           // Do not save duplicates (API we are using has some)
-          if (localMarkers[holiday.date.iso].dots[0].key != holiday.name) {
+          if (localMarkers[holiday.date.iso].dots[0].name != holiday.name ||
+            localMarkers[holiday.date.iso].dots[0].description != holiday.desc) {
             localMarkers[holiday.date.iso].dots.push(markerObj)
           }
         }
@@ -101,32 +103,30 @@ class Cal extends React.Component {
   }
 
   getHolidayData = async () => {
-     // see if data is already stored on device
-    storedMarkers = await _retrieveData('markers')
-    if (storedMarkers != null) {
+    // see if data is already stored on device
+    var storedMarkers = await _retrieveData('markers')
+    var storedCountries = await _retrieveData('countries')
+    var firstLaunch = await _retrieveData('firstLaunch')
+    if (storedMarkers != null && storedCountries != null) {
       this.setState({markers: storedMarkers})
     }
-    // if not, pull the data using Calendarific API
-    else {
-      storedCountries = await _retrieveData('countries')
-
+    // if not, pull the data using Calendarific API but only if we have our
+    // user-selected country data or if it's the first launch of the app
+    else if (firstLaunch == null || storedCountries != null) {
       // Setting default country and type if they haven't been set in AsyncStorage
+      var countries = storedCountries
       if (storedCountries == null) {
         countries = {'US': ['religious'], 'EG': ['all']}
-        _storeData('countries', JSON.stringify(countries))
-      }
-      else {
-        countries = storedCountries
+        await _storeData('countries', JSON.stringify(countries))
       }
 
       await this.setState({countries: countries})
       await this.setYears()
 
-      allHolidays = []
-      urls = this.createWebAddresses()
-      console.log(urls)
+      var allHolidays = []
+      var urls = this.createWebAddresses()
       for (var i = 0; i < urls.length; i++) {
-        url = urls[i].url
+        var url = urls[i].url
         holidays = await fetch(url)
           .then(response => {
             return response.json()
@@ -140,6 +140,12 @@ class Cal extends React.Component {
           holidays: holidays})
       }
       this.createDateMarkers(allHolidays)
+      await _storeData('firstLaunch', JSON.stringify({first: false}))
+    }
+    else {
+      // Set this empty value to avoid errors during rendering empty calendar
+      this.setState({markers: {}})
+      this.setState({curHolidays: {dots: [{key: ''}]}})
     }
   }
 
@@ -168,7 +174,7 @@ class Cal extends React.Component {
     return this.state.curHolidays.dots.map((holidayInfo, i) => {
       return (
         <View key = {i}>
-          <Text>{holidayInfo.key}</Text>
+          <Text>{holidayInfo.name}</Text>
           <Text>{holidayInfo.country}</Text>
           <Text>{holidayInfo.desc}</Text>
           <Text></Text>
@@ -206,6 +212,8 @@ class Cal extends React.Component {
           this.getHolidayData() }} />
         <Modal isVisible={this.state.dayModalVisible}
           scrollTo={this.handleScrollTo}
+          onBackdropPress={() =>
+            this.setDayModalVisible(false)}
         >
           <ScrollView
             ref={ref => (this.scrollViewRef = ref)}
@@ -214,10 +222,10 @@ class Cal extends React.Component {
             <View style={calStyles.modalContent}>
               <Text>{this.state.curDate}</Text>
               { this.renderHolidays() }
-              <Button title="Close" onPress= {() =>
-                {this.setDayModalVisible(false)}} />
             </View>
           </ScrollView>
+          <Button title="X" onPress= {() =>
+            {this.setDayModalVisible(false)}} />
         </Modal>
       </View>
     );
