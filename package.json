@@ -13,6 +13,7 @@
     "expo-linear-gradient": "^5.0.1",
     "mobx": "^5.10.1",
     "mobx-react": "^6.1.1",
+    "native-base": "^2.12.1",
     "react": "16.8.3",
     "react-dom": "^16.8.6",
     "react-multiselect-checkboxes": "^0.1.1",
@@ -24,7 +25,8 @@
     "react-native-modal": "^11.1.0",
     "react-native-multiple-select-list": "^1.0.4",
     "react-native-web": "^0.11.4",
-    "redux": "^4.0.1"
+    "react-redux": "^7.1.0",
+    "redux": "^4.0.3"
   },
   "devDependencies": {
     "babel-preset-expo": "^5.1.1"

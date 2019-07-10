@@ -1,6 +1,8 @@
-import React, {Component} from 'react'
+import React, {Component, PureComponent} from 'react'
 import {AsyncStorage,
   Button,
+  FlatList,
+  Modal,
   ScrollView,
   Text,
   TouchableHighlight,
@@ -9,10 +11,13 @@ import { CheckBox } from 'react-native-elements'
 import CustomMultiPicker from "react-native-multiple-select-list"
 import {_storeData, _retrieveData, _deleteData} from '../utils/AsyncData'
 import { countryOptions } from '../utils/Options'
-import Modal from "react-native-modal"
 import { selStyles } from '../utils/Colors'
 import ReactMultiSelectCheckboxes from 'react-multiselect-checkboxes'
 
+//TODO
+//class SelectionItem extends React.PureComponent {
+
+//}
 
 class Selection extends React.Component {
    constructor(props) {
@@ -23,22 +28,30 @@ class Selection extends React.Component {
     }
   }
 
-  componentDidMount = async () => {
-    // get our list of selected countries from async storage
-    var countryObj = await _retrieveData('countries')
-    if (countryObj == null) {
-      countryObj = {}
-    }
-    await this.setState({selected: countryObj})
-  }
-
-  // Modal-specific methods ----------------------------------------------
+  // Modal-specific methods ------------------------------------------------
   setSelModalVisible = (visible) => {
     this.setState({selModalVisible: visible})
   }
-  // ---------------------------------------------------------------------
 
-  // Selection Processing methods ----------------------------------------
+  openModal = () => {
+    // extra check to make sure selected countries matches what is in calendar
+    this.setState({selected: this.props.countries})
+    this.setSelModalVisible(true)
+  }
+
+  exitModal = async () => {
+    console.log("fetching holidays")
+    this.setSelModalVisible(false)
+    await _deleteData('markers')
+    await this.saveSelected()
+    console.log(this.state.selected)
+    await this.props.getHolidayData(this.state.selected, true)
+    console.log("done")
+  }
+
+  // -----------------------------------------------------------------------
+
+  // Selection Processing methods ------------------------------------------
   isSelectedCountry = (country) => {
     if (country in this.state.selected) {
       return true
@@ -87,21 +100,29 @@ class Selection extends React.Component {
     }
     await this.setState({selected: localSelected})
   }
+
   // executed on modal close to save selected countries in persistence storage
   saveSelected = async () => {
-    await _storeData('countries', JSON.stringify(this.state.selected))
+    await _storeData('selected', JSON.stringify(this.state.selected))
   }
 
-  exitModal = async () => {
-    this.setSelModalVisible(false)
-    await _deleteData('markers')
-    await this.saveSelected()
-    await this.props.getHolidayData()
+  // -----------------------------------------------------------------------
+
+  // For scrolling ---------------------------------------------------------
+  handleOnScroll = (event) => {
+    this.setState({
+      scrollOffset: event.nativeEvent.contentOffset.y,
+    })
   }
 
-  // ---------------------------------------------------------------------
+  handleScrollTo = (p) => {
+    if (this.scrollViewRef) {
+      this.scrollViewRef.scrollTo(p);
+    }
+  }
+  // -----------------------------------------------------------------------
 
-  // For rendering -------------------------------------------------------
+  // For rendering ---------------------------------------------------------
   // type list under countries where type of holiday selection is allowed
   buildTypeList = (countryInfo) => {
     types = ['religious', 'observance', 'national']
@@ -121,83 +142,66 @@ class Selection extends React.Component {
     })
   }
   // the country list for user selection
-  buildCountryList = () => {
-    return countryOptions.map((countryInfo, i) => {
-      if (countryInfo.code == 'US' ||
-        countryInfo.code == 'GB' ||
-        countryInfo.code == 'CA' ||
-        countryInfo.code == 'AU') {
-        return (
-          <View key = {countryInfo.code}>
-            <CheckBox
-              title={countryInfo.name}
-              checked={this.isSelectedCountry(countryInfo.code)}
-              onPress = {() => {
-                this.setSelectedCountry(countryInfo.code, ['religious', 'national', 'observance'])
-              }}
-              onIconPress = {() => {
-                this.setSelectedCountry(countryInfo.code, ['religious', 'national', 'observance'])
+  buildCountryList = (countryInfo) => {
+    if (countryInfo.code == 'US' ||
+      countryInfo.code == 'GB' ||
+      countryInfo.code == 'CA' ||
+      countryInfo.code == 'AU') {
+      return (
+        <View key = {countryInfo.code}>
+          <CheckBox key = {countryInfo.name}
+            title={countryInfo.name}
+            checked={this.isSelectedCountry(countryInfo.code)}
+            onPress = {() => {
+              this.setSelectedCountry(countryInfo.code, ['religious', 'national', 'observance'])
+            }}
+            onIconPress = {() => {
+              this.setSelectedCountry(countryInfo.code, ['religious', 'national', 'observance'])
 
-              }}
-            />
-            {this.buildTypeList(countryInfo)}
-          </View>
-        )
-      }
-      else {
-        return (
-          <View key = {countryInfo.code}>
-            <CheckBox
-              title={countryInfo.name}
-              checked={this.isSelectedCountry(countryInfo.code)}
-              onPress = {() => {
-                this.setSelectedCountry(countryInfo.code)
-              }}
-              onIconPress = {() => {
-                this.setSelectedCountry(countryInfo.code)
-              }}
-            />
-          </View>
-        )
-      }
-    })
-  }
-  // -----------------------------------------------------------------------
-
-  // For scrolling ---------------------------------------------------------
-  handleOnScroll = (event) => {
-    this.setState({
-      scrollOffset: event.nativeEvent.contentOffset.y,
-    })
-  }
-
-  handleScrollTo = (p) => {
-    if (this.scrollViewRef) {
-      this.scrollViewRef.scrollTo(p);
+            }}
+          />
+          {this.buildTypeList(countryInfo)}
+        </View>
+      )
+    }
+    else {
+      return (
+        <View key = {countryInfo.code}>
+          <CheckBox key = {countryInfo.name}
+            title={countryInfo.name}
+            checked={this.isSelectedCountry(countryInfo.code)}
+            onPress = {() => {
+              this.setSelectedCountry(countryInfo.code)
+            }}
+            onIconPress = {() => {
+              this.setSelectedCountry(countryInfo.code)
+            }}
+          />
+        </View>
+      )
     }
   }
   // -----------------------------------------------------------------------
 
-
   render() {
     return (
       <View>
-        <Button title = "mybuttin" onPress = {() => {
-              this.setSelModalVisible(true) }}
+        <Button title = "Choose Countries" onPress = {() => {
+              this.openModal() }}
           />
-        <Modal isVisible={this.state.selModalVisible}
-          scrollTo={this.handleScrollTo}
+        <Modal visible={this.state.selModalVisible}
         >
-          <ScrollView
-            ref={ref => (this.scrollViewRef = ref)}
-            onScroll={this.handleOnScroll}
-          >
-            <View style = {selStyles.modalContent}>
-              { this.buildCountryList() }
-            </View>
-          </ScrollView>
-          <Button title="X" onPress= {() =>
-            {this.exitModal()}} />
+          <View style = {selStyles.modalContent}>
+
+            <FlatList data = {countryOptions}
+              extraData = {this.state}
+              initialNumToRender={20}
+              renderItem = {(feedItem) => {
+                return(this.buildCountryList(feedItem.item)) }}
+              keyExtractor={(item, index) => index.toString()} />
+            <Button title="X" onPress= {() =>
+              {this.exitModal()}} />
+          </View>
         </Modal>
       </View>
     );

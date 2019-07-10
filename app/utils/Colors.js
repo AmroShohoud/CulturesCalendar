@@ -4,9 +4,6 @@ import {StyleSheet} from 'react-native';
 //contains colors and styles for all components
 
 // Main.js
-const primaryStart = 'lightgreen';
-const primaryEnd = 'lightblue';
-export const primaryGradientArray = [primaryStart, primaryEnd];
 export const mainStyles = StyleSheet.create({
   container: {
     flex: 1,
@@ -14,8 +11,10 @@ export const mainStyles = StyleSheet.create({
   },
   calContainer: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  colors: {
+    backgroundColor: '#FAFAD2'
   }
 });
 
@@ -35,12 +34,11 @@ export const headerStyles = StyleSheet.create({
 // Cal.js
 export const calStyles = StyleSheet.create({
   container: {
-    height: 600,
-    width: 400,
-    marginTop: 40
+    height: '100%',
+    width: '100%'
   },
   calendar: {
-    backgroundColor: 'lightblue'
+    backgroundColor: 'lightgreen'
   },
   background: {
     opacity: 0.6
@@ -57,12 +55,12 @@ export const calStyles = StyleSheet.create({
 
 export const calTheme = {
   calendarBackground: 'white',
-    textDayFontSize: 20,
-    textMonthFontSize: 22,
-    textDayHeaderFontSize: 20,
-    textDayFontWeight: '500',
-    textMonthFontWeight: 'bold',
-    textDayHeaderFontWeight: '500',
+  textDayFontSize: 20,
+  textMonthFontSize: 22,
+  textDayHeaderFontSize: 14,
+  textDayFontWeight: '500',
+  textMonthFontWeight: 'bold',
+  textDayHeaderFontWeight: '400',
 }
 
 // Selection.js
@@ -74,5 +72,8 @@ export const selStyles = StyleSheet.create({
     alignItems: 'flex-start',
     borderRadius: 4,
     borderColor: 'rgba(0, 0, 0, 0.1)',
+  },
+  flatlist: {
+    flex: 1
   }
 })
