@@ -18,19 +18,6 @@ export const mainStyles = StyleSheet.create({
   }
 });
 
-// Header.js
-export const headerStyles = StyleSheet.create({
-  headerContainer: {
-    marginTop: 40,
-    justifyContent: 'flex-start'
-  },
-  headerText: {
-    color: 'white',
-    fontSize: 22,
-    fontWeight: '500'
-  }
-});
-
 // Cal.js
 export const calStyles = StyleSheet.create({
   container: {
@@ -65,15 +52,26 @@ export const calTheme = {
 
 // Selection.js
 export const selStyles = StyleSheet.create({
+  modalContainer: {
+    width: '90%',
+    height: '90%'
+  },
   modalContent: {
     backgroundColor: 'white',
     padding: 22,
     justifyContent: 'center',
-    alignItems: 'flex-start',
     borderRadius: 4,
-    borderColor: 'rgba(0, 0, 0, 0.1)',
+    borderColor: 'rgba(0, 0, 0, 0.1)'
   },
-  flatlist: {
-    flex: 1
+  countryCheckboxes: {
+    backgroundColor: 'white',
+    borderWidth: 0,
+    alignSelf: 'flex-start'
+  },
+  typeCheckboxes: {
+    backgroundColor: 'white',
+    borderWidth: 0,
+    alignSelf: 'flex-start',
+    marginLeft: 40
   }
 })

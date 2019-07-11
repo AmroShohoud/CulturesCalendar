@@ -109,7 +109,7 @@ export default class Main extends React.Component {
   }
 
   // checks if holidays for a url are cached, if not makes API call
-  makeAPICalls = async (countries, years) => {
+  makeAPICalls = async (countries, years, urlCache) => {
     var holidays = []
     var allHolidays = []
     var localCache = {}
@@ -117,8 +117,8 @@ export default class Main extends React.Component {
     for (var i = 0; i < urls.length; i++) {
       var url = urls[i].url
       var country = urls[i].country
-      if (url in this.state.urlCache) {
-        holidays = this.state.urlCache[url]
+      if (url in urlCache) {
+        holidays = urlCache[url]
         allHolidays = allHolidays.concat({country: countryCodeOptions[country],
           holidays: holidays})
         localCache[url] = holidays
@@ -138,7 +138,6 @@ export default class Main extends React.Component {
           holidays: holidays})
       }
     }
-    console.log(localCache)
     this.setState({urlCache: localCache})
     _storeData('urlCache', JSON.stringify(localCache))
     return allHolidays
@@ -173,10 +172,11 @@ export default class Main extends React.Component {
     {
       var countries = selectedCountries
       this.setState({countries: countries})
+      this.setState({urlCache: urlCache})
       var years = this.setYears()
 
       // get data and
-      var allHolidays = await this.makeAPICalls(countries, years)
+      var allHolidays = await this.makeAPICalls(countries, years, urlCache)
       this.createDateMarkers(allHolidays)
       await _storeData('selected', JSON.stringify(countries))
     }

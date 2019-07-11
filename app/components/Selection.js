@@ -1,17 +1,16 @@
 import React, {Component, PureComponent} from 'react'
 import {AsyncStorage,
-  Button,
   FlatList,
   Modal,
   ScrollView,
   Text,
   TouchableHighlight,
   View} from 'react-native'
-import { CheckBox } from 'react-native-elements'
+import {Button, CheckBox} from 'react-native-elements'
 import CustomMultiPicker from "react-native-multiple-select-list"
 import {_storeData, _retrieveData, _deleteData} from '../utils/AsyncData'
-import { countryOptions } from '../utils/Options'
-import { selStyles } from '../utils/Colors'
+import {countryOptions} from '../utils/Options'
+import {selStyles} from '../utils/Colors'
 import ReactMultiSelectCheckboxes from 'react-multiselect-checkboxes'
 
 //TODO
@@ -44,8 +43,7 @@ class Selection extends React.Component {
     this.setSelModalVisible(false)
     await _deleteData('markers')
     await this.saveSelected()
-    console.log(this.state.selected)
-    await this.props.getHolidayData(this.state.selected, true)
+    await this.props.getHolidayData(this.state.selected, false)
     console.log("done")
   }
 
@@ -101,9 +99,13 @@ class Selection extends React.Component {
     await this.setState({selected: localSelected})
   }
 
+  clearSelected = () => {
+    this.setState({selected: {}})
+  }
+
   // executed on modal close to save selected countries in persistence storage
-  saveSelected = async () => {
-    await _storeData('selected', JSON.stringify(this.state.selected))
+  saveSelected = () => {
+    _storeData('selected', JSON.stringify(this.state.selected))
   }
 
   // -----------------------------------------------------------------------
@@ -129,6 +131,7 @@ class Selection extends React.Component {
     return types.map((type, i) => {
       return (
         <CheckBox key = {countryInfo.name.concat(type)}
+          containerStyle = {selStyles.typeCheckboxes}
           title={type}
           checked={this.isSelectedType(countryInfo.code, type)}
           onPress = {() => {
@@ -150,6 +153,7 @@ class Selection extends React.Component {
       return (
         <View key = {countryInfo.code}>
           <CheckBox key = {countryInfo.name}
+            containerStyle = {selStyles.countryCheckboxes}
             title={countryInfo.name}
             checked={this.isSelectedCountry(countryInfo.code)}
             onPress = {() => {
@@ -168,6 +172,7 @@ class Selection extends React.Component {
       return (
         <View key = {countryInfo.code}>
           <CheckBox key = {countryInfo.name}
+            containerStyle = {selStyles.countryCheckboxes}
             title={countryInfo.name}
             checked={this.isSelectedCountry(countryInfo.code)}
             onPress = {() => {
@@ -192,15 +197,23 @@ class Selection extends React.Component {
         <Modal visible={this.state.selModalVisible}
         >
           <View style = {selStyles.modalContent}>
-
             <FlatList data = {countryOptions}
               extraData = {this.state}
               initialNumToRender={20}
               renderItem = {(feedItem) => {
                 return(this.buildCountryList(feedItem.item)) }}
               keyExtractor={(item, index) => index.toString()} />
-            <Button title="X" onPress= {() =>
-              {this.exitModal()}} />
+            <View style={{flexDirection:"row"}}>
+              <View style={{flex:1}}>
+                <Button title="Clear" type = "outline" onPress= {() =>
+                  {this.clearSelected()}} />
+              </View>
+              <Text>{" "}</Text>
+              <View style={{flex:1}}>
+                <Button title="Close" onPress= {() =>
+                  {this.exitModal()}} />
+              </View>
+            </View>
           </View>
         </Modal>
       </View>
