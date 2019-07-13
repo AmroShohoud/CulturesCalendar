@@ -5,8 +5,8 @@ import {Container, Header, Content, Footer, Title} from 'native-base'
 import Cal from './components/Cal'
 import Selection from './components/Selection'
 import {_storeData, _retrieveData} from './utils/AsyncData'
-import {mainStyles} from './utils/Colors'
-import {countryCodeOptions} from './utils/Options'
+import {mainStyles} from './utils/Styles'
+import {countryCodeOptions, countryColors} from './utils/Options'
 
 
 
@@ -78,8 +78,9 @@ export default class Main extends React.Component {
           key: i + "" + j,
           name: holiday.name,
           desc: holiday.description,
-          country: holidayArray[i].country,
-          color: 'green'
+          countryLong: holidayArray[i].countryLong,
+          color: countryColors[holidayArray[i].code]
+          // color: countryColors[holidayArray[i].code]
         }
         // Be able to incorporate multiple holidays on same day
         if (holiday.date.iso in localMarkers) {
@@ -95,7 +96,6 @@ export default class Main extends React.Component {
       }
     }
     await this.setState({markers: localMarkers})
-    await _storeData('markers', JSON.stringify(localMarkers))
   }
 
   // Set the years to this year, previous year, and next year
@@ -119,7 +119,7 @@ export default class Main extends React.Component {
       var country = urls[i].country
       if (url in urlCache) {
         holidays = urlCache[url]
-        allHolidays = allHolidays.concat({country: countryCodeOptions[country],
+        allHolidays = allHolidays.concat({countryLong: countryCodeOptions[country], code: country,
           holidays: holidays})
         localCache[url] = holidays
       }
@@ -134,7 +134,7 @@ export default class Main extends React.Component {
             console.log(err) //TODO check this and add modal that shows error message
           })
         localCache[url] = holidays
-        allHolidays = allHolidays.concat({country: countryCodeOptions[country],
+        allHolidays = allHolidays.concat({countryLong: countryCodeOptions[country], code: country,
           holidays: holidays})
       }
     }

@@ -8,7 +8,7 @@ import {Calendar,
   CalendarList,
   Agenda} from 'react-native-calendars'
 import Modal from "react-native-modal"
-import {calStyles, calTheme} from '../utils/Colors'
+import {calStyles, calTheme} from '../utils/Styles'
 import Selection from './Selection'
 import {countryCodeOptions} from '../utils/Options'
 import {_retrieveData} from '../utils/AsyncData'
@@ -47,7 +47,7 @@ class Cal extends React.Component {
       return (
         <View key = {i}>
           <Text>{holidayInfo.name}</Text>
-          <Text>{holidayInfo.country}</Text>
+          <Text>{holidayInfo.countryLong}</Text>
           <Text>{holidayInfo.desc}</Text>
           <Text></Text>
         </View>
