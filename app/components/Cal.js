@@ -11,7 +11,7 @@ import {Button} from 'react-native-elements'
 import Modal from 'react-native-modal'
 import {calStyles, calTheme} from '../utils/Styles'
 import Selection from './Selection'
-import {countryCodeOptions} from '../utils/Options'
+import {countryCodeOptions, countryColors} from '../utils/Options'
 import {_retrieveData} from '../utils/AsyncData'
 
 
@@ -45,9 +45,9 @@ class Cal extends React.Component {
   renderHolidays = () => {
     return this.state.curHolidays.dots.map((holidayInfo, i) => {
       return (
-        <View key = {i}>
-          <Text>{holidayInfo.name}</Text>
-          <Text>{holidayInfo.countryLong}</Text>
+        <View style = {calStyles.modalHoliday} key = {i}>
+          <Text style = {calStyles.modalHolidayName}>{holidayInfo.name}</Text>
+          <Text style = {{color: holidayInfo.color}}>{holidayInfo.countryLong}</Text>
           <Text>{holidayInfo.desc}</Text>
           <Text></Text>
         </View>
@@ -102,7 +102,8 @@ class Cal extends React.Component {
             scrollEventThrottle={16}
           >
             <View style={calStyles.modalContent}>
-              <Text>{this.state.curDate}</Text>
+              <Text style = {calStyles.modalDate}>{this.state.curDate}</Text>
+              <Text>{" "}</Text>
               { this.renderHolidays() }
             </View>
           </ScrollView>

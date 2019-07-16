@@ -23,11 +23,20 @@ export const calStyles = StyleSheet.create({
   background: {
     opacity: 0.8
   },
+  modalDate: {
+    fontSize: 16,
+    color: 'grey',
+    textAlign: 'center'
+  },
+  modalHoliday: {
+    textAlign: 'left'
+  },
+  modalHolidayName: {
+    fontSize: 16
+  },
   modalContent: {
     backgroundColor: 'white',
     padding: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
     borderRadius: 4,
     borderColor: 'rgba(0, 0, 0, 0.1)',
   }
