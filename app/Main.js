@@ -116,6 +116,7 @@ export default class Main extends React.Component {
     var urls = this.createWebAddresses(countries, years)
     for (var i = 0; i < urls.length; i++) {
       var url = urls[i].url
+      console.log(url)
       var country = urls[i].country
       if (url in urlCache) {
         holidays = urlCache[url]

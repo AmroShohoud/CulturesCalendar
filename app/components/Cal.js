@@ -1,5 +1,5 @@
 import React, {Component} from 'react'
-import {Button,
+import {
   ScrollView,
   Text,
   TouchableHighlight,
@@ -7,12 +7,12 @@ import {Button,
 import {Calendar,
   CalendarList,
   Agenda} from 'react-native-calendars'
-import Modal from "react-native-modal"
+import {Button} from 'react-native-elements'
+import Modal from 'react-native-modal'
 import {calStyles, calTheme} from '../utils/Styles'
 import Selection from './Selection'
 import {countryCodeOptions} from '../utils/Options'
 import {_retrieveData} from '../utils/AsyncData'
-
 
 
 // Cal is the main calendar component of the app
@@ -72,7 +72,7 @@ class Cal extends React.Component {
   render() {
     return (
       <View>
-        <View style={calStyles.container}>
+        <View>
           <CalendarList
             style = {calStyles.background}
             theme = {calTheme}
@@ -84,22 +84,30 @@ class Cal extends React.Component {
               this.showHolidayDetails(day) }}
           />
         </View>
-        <Modal isVisible={this.state.dayModalVisible}
-          scrollTo={this.handleScrollTo}
+        <Modal style = {{flex: 1}}
+          isVisible={this.state.dayModalVisible}
+          swipeDirection="down"
+          onSwipeComplete={() =>
+            this.setDayModalVisible(false)}
           onBackdropPress={() =>
             this.setDayModalVisible(false)}
+          scrollTo={this.handleScrollTo}
+          scrollOffset={this.state.scrollOffset}
+          scrollOffsetMax={1000}
         >
+        <View>
           <ScrollView
             ref={ref => (this.scrollViewRef = ref)}
             onScroll={this.handleOnScroll}
+            scrollEventThrottle={16}
           >
             <View style={calStyles.modalContent}>
               <Text>{this.state.curDate}</Text>
               { this.renderHolidays() }
             </View>
           </ScrollView>
-          <Button title="X" onPress= {() =>
-            {this.setDayModalVisible(false)}} />
+        </View>
+
         </Modal>
       </View>
     );

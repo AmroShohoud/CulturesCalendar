@@ -20,15 +20,8 @@ export const mainStyles = StyleSheet.create({
 
 // Cal.js
 export const calStyles = StyleSheet.create({
-  container: {
-    height: '100%',
-    width: '100%'
-  },
-  calendar: {
-    backgroundColor: 'lightgreen'
-  },
   background: {
-    opacity: 0.6
+    opacity: 0.8
   },
   modalContent: {
     backgroundColor: 'white',
