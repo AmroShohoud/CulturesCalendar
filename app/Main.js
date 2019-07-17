@@ -7,7 +7,10 @@ import Selection from './components/Selection'
 import {_storeData, _retrieveData} from './utils/AsyncData'
 import {mainStyles} from './utils/Styles'
 import {countryCodeOptions, countryColors} from './utils/Options'
-
+import * as BackgroundFetch from 'expo-background-fetch'
+import * as TaskManager from 'expo-task-manager'
+import * as Permissions from 'expo-permissions'
+import {Notifications} from 'expo'
 
 
 // Main is the container for our app pages
@@ -24,7 +27,7 @@ export default class Main extends React.Component {
     };
   }
 
-   // on mount pull our holiday data
+  // on mount pull our holiday data
   componentDidMount = async () => {
     // see if data is already stored on device
     var storedCountries = await _retrieveData('selected')
@@ -33,8 +36,45 @@ export default class Main extends React.Component {
     // used if user decides to select a new country in addition to keeping
     // older ones selected or if holidays are stored in persistent storage
     var urlCache = await _retrieveData('urlCache')
+    this.hasPermissions()
     this.getHolidayData(storedCountries, firstLaunch, urlCache)
+    BackgroundFetch.registerTaskAsync('updateHolidays', {minimumInterval: 60})
   }
+
+  // Notifications-specific methods ------------------------------------------
+
+  // alertIfRemoteNotificationsDisabledAsync = async() => {
+  //   const { status } = await Permissions.getAsync(Permissions.NOTIFICATIONS);
+  //   if (status !== 'granted') {
+  //     alert('Enable notifications in settings to receive holiday notifications');
+  //   }
+  // }
+
+  hasPermissions = async() => {
+    var result = await Permissions.askAsync(Permissions.NOTIFICATIONS)
+    if (result.status === 'granted') {
+      console.log('Notification permissions granted.')
+    }
+  }
+
+  scheduleNotification = async (countryLong, holiday, desc, date) => {
+    var body = countryLong
+    if (desc != null) {
+      body = body + ": " + desc
+    }
+    var notificationId = Notifications.scheduleLocalNotificationAsync(
+      {
+        title: holiday,
+        body: body
+      },
+      {
+        time: date
+      }
+    );
+    return(notificationId)
+  };
+
+  // -------------------------------------------------------------------------
 
   // Calendar-specific functions for initial rendering -----------------------
 
@@ -65,6 +105,10 @@ export default class Main extends React.Component {
 
   // Put holidays into format to pass into the Calendar component for marking dates of holidays
   createDateMarkers = async (holidayArray) => {
+    // Cancel are previously scheduled notifications
+    // (because we will reschedule the notifications the user has chosen)
+    Notifications.cancelAllScheduledNotificationsAsync()
+    var time = 'T00:00'
     var localMarkers = {}
 
     // Format of objects to be passed into Calendar component's 'markedDates'
@@ -80,8 +124,18 @@ export default class Main extends React.Component {
           desc: holiday.description,
           countryLong: holidayArray[i].countryLong,
           color: countryColors[holidayArray[i].code]
-          // color: countryColors[holidayArray[i].code]
         }
+
+        // schedule holiday notifications
+        // TODO offset by local time of country that holiday celebrated in
+        if (holiday.type[0] != "Season" && holiday.type[0] != "Clock change\/Daylight Saving Time") {
+          var date = new Date(holiday.date.iso+time)
+          var dateUTC = new Date(date.getTime() + date.getTimezoneOffset() * 60000)
+          if (dateUTC > new Date()) {
+            this.scheduleNotification(holidayArray[i].countryLong, holiday.name, holiday.description, dateUTC)
+          }
+        }
+
         // Be able to incorporate multiple holidays on same day
         if (holiday.date.iso in localMarkers) {
           // Do not save duplicates (API we are using has some)
@@ -204,3 +258,20 @@ export default class Main extends React.Component {
     );
   }
 }
+
+TaskManager.defineTask('updateHolidays', async () => {
+  try {
+    var lastUpdate = await _retrieveData('lastUpdate')
+    // var nextUpdate = new Date(lastUpdate.setMonth(lastUpdate.getMonth()+1));
+    var nextUpdate = lastUpdate.setHours(lastUpdate.getHours(),lastUpdate.getMinutes()+1,0,0);
+    var current = new Date().getDate();
+    if (current < nextUpdate) {
+      var urls = _retrieveData('urlCache')
+      console.log("updating")
+    }
+    const receivedNewData = true
+    return receivedNewData ? BackgroundFetch.Result.NewData : BackgroundFetch.Result.NoData;
+  } catch (error) {
+    return BackgroundFetch.Result.Failed;
+  }
+});
