@@ -12,6 +12,7 @@ import * as TaskManager from 'expo-task-manager'
 import * as Permissions from 'expo-permissions'
 import {Notifications} from 'expo'
 
+const UPDATE_HOLIDAYS_TASK_NAME = 'updateHolidays'
 
 // Main is the container for our app pages
 export default class Main extends React.Component {
@@ -24,11 +25,12 @@ export default class Main extends React.Component {
       countries: {},
       years: [],
       markers: {}
-    };
+    }
   }
 
   // on mount pull our holiday data
   componentDidMount = async () => {
+    console.log("here")
     // see if data is already stored on device
     var storedCountries = await _retrieveData('selected')
     var firstLaunch = await _retrieveData('firstLaunch')
@@ -36,9 +38,19 @@ export default class Main extends React.Component {
     // used if user decides to select a new country in addition to keeping
     // older ones selected or if holidays are stored in persistent storage
     var urlCache = await _retrieveData('urlCache')
-    this.hasPermissions()
+    await this.hasPermissions()
     this.getHolidayData(storedCountries, firstLaunch, urlCache)
-    BackgroundFetch.registerTaskAsync('updateHolidays', {minimumInterval: 60})
+    //await BackgroundFetch.unregisterTaskAsync("updateHolidays")
+    const status = await BackgroundFetch.getStatusAsync()
+    console.log(BackgroundFetch.Status[status]) //Available
+    await BackgroundFetch.registerTaskAsync(UPDATE_HOLIDAYS_TASK_NAME, {minimumInterval: 10})
+    let isRegistered = await TaskManager.isTaskRegisteredAsync(
+      UPDATE_HOLIDAYS_TASK_NAME
+    )
+    var tasks = await TaskManager.getRegisteredTasksAsync()
+    console.log(tasks)
+    console.log(isRegistered)
+
   }
 
   // Notifications-specific methods ------------------------------------------
@@ -51,18 +63,18 @@ export default class Main extends React.Component {
   // }
 
   hasPermissions = async() => {
-    var result = await Permissions.askAsync(Permissions.NOTIFICATIONS)
-    if (result.status === 'granted') {
+    var notifs = await Permissions.askAsync(Permissions.NOTIFICATIONS)
+    if (notifs.status === 'granted') {
       console.log('Notification permissions granted.')
     }
   }
 
-  scheduleNotification = async (countryLong, holiday, desc, date) => {
-    var body = countryLong
+  scheduleNotification = async (country, holiday, desc, date) => {
+    var body = country
     if (desc != null) {
       body = body + ": " + desc
     }
-    var notificationId = Notifications.scheduleLocalNotificationAsync(
+    Notifications.scheduleLocalNotificationAsync(
       {
         title: holiday,
         body: body
@@ -70,9 +82,8 @@ export default class Main extends React.Component {
       {
         time: date
       }
-    );
-    return(notificationId)
-  };
+    )
+  }
 
   // -------------------------------------------------------------------------
 
@@ -104,17 +115,19 @@ export default class Main extends React.Component {
   }
 
   // Put holidays into format to pass into the Calendar component for marking dates of holidays
+  // and set them as notifications
   createDateMarkers = async (holidayArray) => {
-    // Cancel are previously scheduled notifications
+    // Cancel all previously scheduled notifications
     // (because we will reschedule the notifications the user has chosen)
-    Notifications.cancelAllScheduledNotificationsAsync()
+    await Notifications.cancelAllScheduledNotificationsAsync()
+
+
     var time = 'T00:00'
     var localMarkers = {}
 
     // Format of objects to be passed into Calendar component's 'markedDates'
     // {'date': {dots: [{key: xxx, name: xxx, color: xxx, description: xxx},
     // {key: yyy, name: yyy, color: yyy, description: yyy}]}}
-
     for (var i = 0; i < holidayArray.length; i++) {
       for (var j = 0; j < holidayArray[i].holidays.length; j++) {
         var holiday = holidayArray[i].holidays[j]
@@ -170,7 +183,7 @@ export default class Main extends React.Component {
     var urls = this.createWebAddresses(countries, years)
     for (var i = 0; i < urls.length; i++) {
       var url = urls[i].url
-      console.log(url)
+      //console.log(url)
       var country = urls[i].country
       if (url in urlCache) {
         holidays = urlCache[url]
@@ -234,6 +247,8 @@ export default class Main extends React.Component {
       var allHolidays = await this.makeAPICalls(countries, years, urlCache)
       this.createDateMarkers(allHolidays)
       await _storeData('selected', JSON.stringify(countries))
+      var d = new Date()
+      _storeData('lastUpdate', d.toString())
     }
   }
 
@@ -259,14 +274,26 @@ export default class Main extends React.Component {
   }
 }
 
-TaskManager.defineTask('updateHolidays', async () => {
+TaskManager.defineTask(UPDATE_HOLIDAYS_TASK_NAME, async () => {
+  console.log("new")
   try {
     var lastUpdate = await _retrieveData('lastUpdate')
+    lastUpdate = new Date(lastUpdate)
+      console.log("new1")
     // var nextUpdate = new Date(lastUpdate.setMonth(lastUpdate.getMonth()+1));
     var nextUpdate = lastUpdate.setHours(lastUpdate.getHours(),lastUpdate.getMinutes()+1,0,0);
-    var current = new Date().getDate();
-    if (current < nextUpdate) {
+    var current = new Date()
+      console.log("new2")
+    if (current > nextUpdate) {
+        console.log("new3")
       var urls = _retrieveData('urlCache')
+      console.log("break1")
+      var storedCountries = await _retrieveData('selected')
+      console.log("break2")
+      var firstLaunch = await _retrieveData('firstLaunch')
+      console.log("break3")
+
+      this.getHolidayData(storedCountries, firstLaunch, urlCache)
       console.log("updating")
     }
     const receivedNewData = true
