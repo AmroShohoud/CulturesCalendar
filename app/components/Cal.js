@@ -13,6 +13,7 @@ import {calStyles, calTheme} from '../utils/Styles'
 import Selection from './Selection'
 import {countryCodeOptions, countryColors} from '../utils/Options'
 import {_retrieveData} from '../utils/AsyncData'
+import {HasPermissions, GetHolidayData} from '../utils/DataFunctions'
 
 
 // Cal is the main calendar component of the app

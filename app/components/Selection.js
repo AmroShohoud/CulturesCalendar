@@ -12,6 +12,7 @@ import {_storeData, _retrieveData, _deleteData} from '../utils/AsyncData'
 import {countryOptions} from '../utils/Options'
 import {selStyles} from '../utils/Styles'
 import ReactMultiSelectCheckboxes from 'react-multiselect-checkboxes'
+import {HasPermissions, GetHolidayData} from '../utils/DataFunctions'
 
 //TODO
 //class SelectionItem extends React.PureComponent {
