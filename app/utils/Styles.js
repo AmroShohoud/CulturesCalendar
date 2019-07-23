@@ -75,6 +75,18 @@ export const selStyles = StyleSheet.create({
     borderWidth: 0,
     alignSelf: 'flex-start',
     marginLeft: 40
+  },
+  buttonStyle: {
+    backgroundColor: 'green',
+    borderColor: 'green',
+    borderWidth: 1
+  },
+  clearButtonStyle: {
+    borderColor: 'green',
+    borderWidth: 1
+  },
+  clearButtonTitle: {
+    color: 'green'
   }
 })
 

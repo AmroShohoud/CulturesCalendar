@@ -50,9 +50,7 @@ async function MakeAPICalls (countries, years, urlCache) {
         holidays: holidays})
     }
   }
-  globalUrlCache = localCache
-  _storeData('urlCache', JSON.stringify(localCache))
-  return(allHolidays)
+  return({urlCache: localCache, allHolidays: allHolidays})
 }
 
 // build url strings based on user-defined parameters
@@ -83,15 +81,9 @@ function CreateWebAddresses (countries, years) {
 
 // Put holidays into format to pass into the Calendar component for marking dates of holidays
 // and set them as notifications
-async function CreateDateMarkers (holidayArray) {
-  // Cancel all previously scheduled notifications
-  // (because we will reschedule the notifications the user has chosen)
-  await Notifications.cancelAllScheduledNotificationsAsync()
+function CreateDateMarkers (holidayArray) {
 
-
-  var time = 'T00:00'
-  var localMarkers = {}
-
+  localMarkers = {}
   // Format of objects to be passed into Calendar component's 'markedDates'
   // {'date': {dots: [{key: xxx, name: xxx, color: xxx, description: xxx},
   // {key: yyy, name: yyy, color: yyy, description: yyy}]}}
@@ -104,16 +96,6 @@ async function CreateDateMarkers (holidayArray) {
         desc: holiday.description,
         countryLong: holidayArray[i].countryLong,
         color: countryColors[holidayArray[i].code]
-      }
-
-      // schedule holiday notifications
-      // TODO offset by local time of country that holiday celebrated in
-      if (holiday.type[0] != "Season" && holiday.type[0] != "Clock change\/Daylight Saving Time") {
-        var date = new Date(holiday.date.iso+time)
-        var dateUTC = new Date(date.getTime() + date.getTimezoneOffset() * 60000)
-        if (dateUTC > new Date()) {
-          ScheduleNotification(holidayArray[i].countryLong, holiday.name, holiday.description, dateUTC)
-        }
       }
 
       // Be able to incorporate multiple holidays on same day
@@ -129,10 +111,8 @@ async function CreateDateMarkers (holidayArray) {
       }
     }
   }
-  //await this.setState({markers: localMarkers})
   return localMarkers
 }
-
 
 // schedule notification for holiday
 function ScheduleNotification (country, holiday, desc, date) {
@@ -168,37 +148,76 @@ export async function HasPermissions () {
   }
 }
 
+// Put holidays into format to pass into the Calendar component for marking dates of holidays
+// and set them as notifications
+export async function ScheduleAllNotifications (holidayArray) {
+  // Cancel all previously scheduled notifications
+  // (because we will reschedule the notifications the user has chosen)
+  await Notifications.cancelAllScheduledNotificationsAsync()
+
+
+  var time = 'T00:00'
+  var localMarkers = {}
+
+  // Format of objects to be passed into Calendar component's 'markedDates'
+  // {'date': {dots: [{key: xxx, name: xxx, color: xxx, description: xxx},
+  // {key: yyy, name: yyy, color: yyy, description: yyy}]}}
+  for (var i = 0; i < holidayArray.length; i++) {
+    for (var j = 0; j < holidayArray[i].holidays.length; j++) {
+      var holiday = holidayArray[i].holidays[j]
+
+      // schedule holiday notifications
+      // TODO offset by local time of country that holiday celebrated in
+      if (holiday.type[0] != "Season" && holiday.type[0] != "Clock change\/Daylight Saving Time") {
+        var date = new Date(holiday.date.iso+time)
+        var dateUTC = new Date(date.getTime() + date.getTimezoneOffset() * 60000)
+        if (dateUTC > new Date()) {
+          ScheduleNotification(holidayArray[i].countryLong, holiday.name, holiday.description, dateUTC)
+        }
+      }
+    }
+  }
+}
 
 // this method hooks into all the processing that goes into building our
 // country holiday objects
-export async function GetHolidayData (selectedCountries = null, firstLaunch, urlCache = globalUrlCache) {
+export async function GetHolidayData (selectedCountries, firstLaunch, urlCache) {
   // Set these empty values to avoid errors during rendering empty calendar
-  localMarkers = {}
-  localCurHolidays = {dots: [{key: ''}]}
+  var localMarkers = {}
+  var localCountries = {}
+  var localUrlCache = {}
+  var allHolidaysArray = []
   var years = getYears()
 
   // first time app is being launched
   // (want to have default holidays so user can see functionality)
   if (firstLaunch == null) {
     // set up our defaults
-    var countries = {'US': ['religious'], 'EG': ['all']}
+    localCountries = {'US': ['religious'], 'EG': ['all']}
 
-    // get data and
-    var allHolidays = await MakeAPICalls(countries, years)
-    localMarkers = await CreateDateMarkers(allHolidays)
-    await _storeData('selected', JSON.stringify(countries))
-    await _storeData('firstLaunch', JSON.stringify({first: false}))
+    // get data and create markers for calendar object
+    var results = await MakeAPICalls(localCountries, years, urlCache)
+    localUrlCache = results.urlCache
+    allHolidaysArray = results.allHolidays
+    localMarkers = await CreateDateMarkers(allHolidaysArray)
   }
   // User has countries selected
   else if (selectedCountries != null) {
-     // Set this empty value to avoid errors during rendering empty calendar
-     var countries = selectedCountries
-    // get data and
-    var allHolidays = await MakeAPICalls(countries, years, urlCache)
-    localMarkers = await CreateDateMarkers(allHolidays)
-    await _storeData('selected', JSON.stringify(countries))
-    var d = new Date()
-    _storeData('lastUpdate', d.toString())
+    // Set this empty value to avoid errors during rendering empty calendar
+    localCountries = selectedCountries
+
+    // get data and create markers for calendar object
+    var results = await MakeAPICalls(localCountries, years, urlCache)
+    localUrlCache = results.urlCache
+    allHolidaysArray = results.allHolidays
+    localMarkers = await CreateDateMarkers(allHolidaysArray)
   }
-  return({localMarkers: localMarkers, localCurHolidays: localCurHolidays, countries: countries})
+  var d = new Date()
+
+  return {allHolidaysArray: allHolidaysArray,
+    localMarkers: localMarkers,
+    localUrlCache: localUrlCache,
+    selectedCountries: localCountries,
+    lastUpdate: d.toString(),
+    firstLaunch: {first: false}}
 }

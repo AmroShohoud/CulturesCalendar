@@ -1,14 +1,14 @@
 import React, {Component} from 'react'
 import {Button, Platform, Text,
-  View, ScrollView, StatusBar} from 'react-native'
+  View, ScrollView, StatusBar, AsyncStorage} from 'react-native'
 import {Container, Header, Content, Footer, Title} from 'native-base'
 import Cal from './components/Cal'
 import Selection from './components/Selection'
-import {_retrieveData} from './utils/AsyncData'
+import {_storeData, _retrieveData} from './utils/AsyncData'
 import {mainStyles} from './utils/Styles'
 import * as BackgroundFetch from 'expo-background-fetch'
 import * as TaskManager from 'expo-task-manager'
-import {HasPermissions, GetHolidayData} from './utils/DataFunctions'
+import {HasPermissions, GetHolidayData, ScheduleAllNotifications} from './utils/DataFunctions'
 
 const UPDATE_HOLIDAYS_TASK_NAME = 'updateHolidays'
 
@@ -18,47 +18,54 @@ export default class Main extends React.Component {
     super(props)
     this.state = {
       markers: {},
-      countries: {}
+      selectedCountries: {},
+      urlCache: {}
     }
   }
 
   // on mount pull our holiday data
   componentDidMount = async () => {
-    // see if data is already stored on device
-    var storedCountries = await _retrieveData('selected')
-    var firstLaunch = await _retrieveData('firstLaunch')
-    let globalUrlCache = await _retrieveData('urlCache')
-
+    // First check if we have permissions for notifications (prompt user if not)
     await HasPermissions()
-    this.getHolidayData(storedCountries, firstLaunch, globalUrlCache)
+
+    // see if data is already stored on device
+    var storedCountries = await _retrieveData('selectedCountries')
+    var firstLaunch = await _retrieveData('firstLaunch')
+    var storedUrlCache = await _retrieveData('urlCache')
+
+    // sets all our states up
+    this.getHolidayData(storedCountries, firstLaunch, storedUrlCache)
 
     // Set background task for updating data
-    //await BackgroundFetch.unregisterTaskAsync("updateHolidays")
-    const status = await BackgroundFetch.getStatusAsync()
-    console.log(BackgroundFetch.Status[status]) //Available
-    await BackgroundFetch.registerTaskAsync(UPDATE_HOLIDAYS_TASK_NAME, {minimumInterval: 10})
-    let isRegistered = await TaskManager.isTaskRegisteredAsync(
-      UPDATE_HOLIDAYS_TASK_NAME
-    )
+    await BackgroundFetch.registerTaskAsync(UPDATE_HOLIDAYS_TASK_NAME, {minimumInterval: 10}) //TODO change interval
+
+    // TODO delete these lines after done testing
     var tasks = await TaskManager.getRegisteredTasksAsync()
     console.log(tasks)
-    console.log(isRegistered)
-
   }
 
-  getHolidayData = async (selectedCountries, firstLaunch, urlCache = globalUrlCache) => {
+  getHolidayData = async (selectedCountries, firstLaunch, urlCache = this.state.urlCache) => {
     var results = await GetHolidayData(selectedCountries, firstLaunch, urlCache)
+
     await this.setState({markers: results.localMarkers})
-    await this.setState({countries: results.countries})
+    await this.setState({selectedCountries: results.selectedCountries})
+    this.setState({urlCache: results.localUrlCache})
+
+    _storeData('urlCache', JSON.stringify(results.localUrlCache))
+    _storeData('selectedCountries', JSON.stringify(results.selectedCountries))
+    _storeData('lastUpdate', results.lastUpdate)
+    _storeData('firstLaunch', JSON.stringify(results.firstLaunch))
+
+    ScheduleAllNotifications(results.allHolidaysArray)
   }
 
   render () {
     return (
       <Container>
         <Header style={mainStyles.colors}>
-          <Selection countries = {this.state.countries}
-            getHolidayData = {(selected, firstLaunch) => {
-          this.getHolidayData(selected, firstLaunch) }} />
+          <Selection selectedCountries = {this.state.selectedCountries}
+            getHolidayData = {(selectedCountries, firstLaunch) => {
+          this.getHolidayData(selectedCountries, firstLaunch) }} />
         </Header>
         <View style = {mainStyles.calContainer}>
           <Cal
@@ -73,28 +80,26 @@ export default class Main extends React.Component {
 }
 
 TaskManager.defineTask(UPDATE_HOLIDAYS_TASK_NAME, async () => {
-  console.log("new")
   try {
     var lastUpdate = await _retrieveData('lastUpdate')
     lastUpdate = new Date(lastUpdate)
-      console.log("new1")
-    // var nextUpdate = new Date(lastUpdate.setMonth(lastUpdate.getMonth()+1));
+
     var nextUpdate = lastUpdate.setHours(lastUpdate.getHours(),lastUpdate.getMinutes()+1,0,0);
     var current = new Date()
-      console.log("new2")
-    if (current > nextUpdate) {
-        console.log("new3")
-      var storedUrlCache = _retrieveData('urlCache')
-      console.log("break1")
-      var storedCountries = await _retrieveData('selected')
-      console.log("break2")
-      var firstLaunch = await _retrieveData('firstLaunch')
-      console.log("break3")
 
-      GetHolidayData(storedCountries, firstLaunch, storedUrlCache)
-      console.log("updating")
+    if (current > nextUpdate) {
+      var urlCache = {} // Want to incorporate updates by Calendarific to current holiday data
+      var storedCountries = await _retrieveData('selectedCountries')
+      var firstLaunch = await _retrieveData('firstLaunch')
+
+      var results = await GetHolidayData(storedCountries, firstLaunch, urlCache)
+      _storeData('urlCache', JSON.stringify(results.urlCache))
+      _storeData('lastUpdate', results.lastUpdate)
+
+      ScheduleAllNotifications(results.allHolidaysArray)
+      console.log("updated")
     }
-    const receivedNewData = true
+    var receivedNewData = true
     return receivedNewData ? BackgroundFetch.Result.NewData : BackgroundFetch.Result.NoData;
   } catch (error) {
     console.log(error)
