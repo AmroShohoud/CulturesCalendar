@@ -84,19 +84,20 @@ TaskManager.defineTask(UPDATE_HOLIDAYS_TASK_NAME, async () => {
       console.log("new2")
     if (current > nextUpdate) {
         console.log("new3")
-      var urls = _retrieveData('urlCache')
+      var storedUrlCache = _retrieveData('urlCache')
       console.log("break1")
       var storedCountries = await _retrieveData('selected')
       console.log("break2")
       var firstLaunch = await _retrieveData('firstLaunch')
       console.log("break3")
 
-      GetHolidayData(storedCountries, firstLaunch, urlCache)
+      GetHolidayData(storedCountries, firstLaunch, storedUrlCache)
       console.log("updating")
     }
     const receivedNewData = true
     return receivedNewData ? BackgroundFetch.Result.NewData : BackgroundFetch.Result.NoData;
   } catch (error) {
+    console.log(error)
     return BackgroundFetch.Result.Failed;
   }
 });
