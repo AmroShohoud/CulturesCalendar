@@ -26,7 +26,6 @@ async function MakeAPICalls (countries, years, urlCache) {
   var urls = CreateWebAddresses(countries, years)
   for (var i = 0; i < urls.length; i++) {
     var url = urls[i].url
-    //console.log(url)
     var country = urls[i].country
     if (url in urlCache) {
       holidays = urlCache[url]
@@ -35,7 +34,6 @@ async function MakeAPICalls (countries, years, urlCache) {
       localCache[url] = holidays
     }
     else {
-      console.log(url)
       holidays = await fetch(url)
         .then(response => {
           return response.json()
@@ -213,11 +211,11 @@ export async function GetHolidayData (selectedCountries, firstLaunch, urlCache) 
     localMarkers = await CreateDateMarkers(allHolidaysArray)
   }
   var d = new Date()
-
+  var lastUpdated = {date: d}
   return {allHolidaysArray: allHolidaysArray,
     localMarkers: localMarkers,
     localUrlCache: localUrlCache,
     selectedCountries: localCountries,
-    lastUpdate: d.toString(),
+    lastUpdate: lastUpdated,
     firstLaunch: {first: false}}
 }

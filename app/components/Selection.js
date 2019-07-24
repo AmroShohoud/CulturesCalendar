@@ -40,11 +40,9 @@ class Selection extends React.Component {
   }
 
   exitModal = async () => {
-    console.log("fetching holidays")
     this.setSelModalVisible(false)
     this.saveSelected()
     await this.props.getHolidayData(this.state.selectedCountries, false)
-    console.log("done")
   }
 
   // -----------------------------------------------------------------------
