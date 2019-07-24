@@ -97,6 +97,7 @@ export default class Main extends React.Component {
           this.closeErrorModal(false)}>
         <View style={mainStyles.modalContent}>
           <Text style={mainStyles.modalError}>{"Error"}</Text>
+          <Text> {" "}</Text>
           <Text style={mainStyles.modalErrorMsg}>{"Check your internet connection"}</Text>
           <Text>{" "}</Text>
           <Text>{" "}</Text>

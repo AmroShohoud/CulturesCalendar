@@ -1,6 +1,7 @@
 // app/utils/Colors.js
 import {StyleSheet} from 'react-native';
 
+export const buttonColor = '#009900'
 //contains colors and styles for all components
 
 // Main.js
@@ -32,8 +33,8 @@ export const mainStyles = StyleSheet.create({
     textAlign: 'center'
   },
   errorButtonStyle: {
-    backgroundColor: 'green',
-    borderColor: 'green',
+    backgroundColor: buttonColor,
+    borderColor: buttonColor,
     borderWidth: 1
   },
   errorButtonContainer: {
@@ -74,6 +75,7 @@ export const calTheme = {
   textDayFontWeight: '500',
   textMonthFontWeight: 'bold',
   textDayHeaderFontWeight: '400',
+  todayTextColor: '#00cc00'
 }
 
 // Selection.js
@@ -101,16 +103,16 @@ export const selStyles = StyleSheet.create({
     marginLeft: 40
   },
   buttonStyle: {
-    backgroundColor: 'green',
-    borderColor: 'green',
+    backgroundColor: buttonColor,
+    borderColor: buttonColor,
     borderWidth: 1
   },
   clearButtonStyle: {
-    borderColor: 'green',
+    borderColor: buttonColor,
     borderWidth: 1
   },
   clearButtonTitle: {
-    color: 'green'
+    color: buttonColor
   }
 })
 

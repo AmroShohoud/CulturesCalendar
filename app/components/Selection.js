@@ -10,7 +10,7 @@ import {Button, CheckBox, ThemeProvider} from 'react-native-elements'
 import CustomMultiPicker from "react-native-multiple-select-list"
 import {_storeData, _retrieveData, _deleteData} from '../utils/AsyncData'
 import {countryOptions} from '../utils/Options'
-import {selStyles, buttonTheme} from '../utils/Styles'
+import {selStyles, buttonColor} from '../utils/Styles'
 import ReactMultiSelectCheckboxes from 'react-multiselect-checkboxes'
 import {HasPermissions, GetHolidayData} from '../utils/DataFunctions'
 
@@ -129,7 +129,7 @@ class Selection extends React.Component {
     return types.map((type, i) => {
       return (
         <CheckBox key = {countryInfo.name.concat(type)}
-          checkedColor = 'green'
+          checkedColor = {buttonColor}
           containerStyle = {selStyles.typeCheckboxes}
           title={type}
           checked={this.isSelectedType(countryInfo.code, type)}
@@ -153,7 +153,7 @@ class Selection extends React.Component {
         <View key = {countryInfo.code}>
           <CheckBox key = {countryInfo.name}
             containerStyle = {selStyles.countryCheckboxes}
-            checkedColor = 'green'
+            checkedColor = {buttonColor}
             title={countryInfo.name}
             checked={this.isSelectedCountry(countryInfo.code)}
             onPress = {() => {
@@ -173,7 +173,7 @@ class Selection extends React.Component {
         <View key = {countryInfo.code}>
           <CheckBox key = {countryInfo.name}
             containerStyle = {selStyles.countryCheckboxes}
-            checkedColor = 'green'
+            checkedColor = {buttonColor}
             title={countryInfo.name}
             checked={this.isSelectedCountry(countryInfo.code)}
             onPress = {() => {
