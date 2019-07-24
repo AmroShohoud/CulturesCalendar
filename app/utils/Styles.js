@@ -15,6 +15,30 @@ export const mainStyles = StyleSheet.create({
   },
   colors: {
     backgroundColor: '#FAFAD2'
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    padding: 22,
+    borderRadius: 4,
+    borderColor: 'rgba(0, 0, 0, 0.1)',
+  },
+  modalError: {
+    fontSize: 18,
+    color: 'grey',
+    textAlign: 'center'
+  },
+  modalErrorMsg: {
+    fontSize: 16,
+    textAlign: 'center'
+  },
+  errorButtonStyle: {
+    backgroundColor: 'green',
+    borderColor: 'green',
+    borderWidth: 1
+  },
+  errorButtonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center'
   }
 });
 

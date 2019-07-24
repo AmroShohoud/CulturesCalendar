@@ -41,8 +41,12 @@ async function MakeAPICalls (countries, years, urlCache) {
         .then(myJson => {
           return myJson.response.holidays
         }).catch(err => {
-          console.log(err) //TODO check this and add modal that shows error message
+          console.log(err)
+          return "error" //TODO check this and add modal that shows error message
         })
+      if (holidays == "error") {
+        return "error"
+      }
       localCache[url] = holidays
       allHolidays = allHolidays.concat({countryLong: countryCodeOptions[country], code: country,
         holidays: holidays})
@@ -195,6 +199,9 @@ export async function GetHolidayData (selectedCountries, firstLaunch, urlCache) 
 
     // get data and create markers for calendar object
     var results = await MakeAPICalls(localCountries, years, urlCache)
+    if (results == "error") {
+      return "error"
+    }
     localUrlCache = results.urlCache
     allHolidaysArray = results.allHolidays
     localMarkers = await CreateDateMarkers(allHolidaysArray)
@@ -206,6 +213,9 @@ export async function GetHolidayData (selectedCountries, firstLaunch, urlCache) 
 
     // get data and create markers for calendar object
     var results = await MakeAPICalls(localCountries, years, urlCache)
+    if (results == "error") {
+      return "error"
+    }
     localUrlCache = results.urlCache
     allHolidaysArray = results.allHolidays
     localMarkers = await CreateDateMarkers(allHolidaysArray)

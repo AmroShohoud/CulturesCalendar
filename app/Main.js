@@ -1,11 +1,12 @@
 import React, {Component} from 'react'
 import {
   ActivityIndicator,
-  Button,
   Text,
   View
   } from 'react-native'
 import {Container, Header, Content, Footer, Title} from 'native-base'
+import {Button} from 'react-native-elements'
+import Modal from 'react-native-modal'
 import Cal from './components/Cal'
 import Selection from './components/Selection'
 import {_storeData, _retrieveData} from './utils/AsyncData'
@@ -24,7 +25,9 @@ export default class Main extends React.Component {
       markers: {},
       selectedCountries: {},
       urlCache: {},
-      loading: "false"
+      loading: "false",
+      errorModalVisible: false,
+      firstLaunch: null
     }
   }
 
@@ -37,6 +40,9 @@ export default class Main extends React.Component {
     var storedCountries = await _retrieveData('selectedCountries')
     var firstLaunch = await _retrieveData('firstLaunch')
     var storedUrlCache = await _retrieveData('urlCache')
+
+    this.setState({firstLaunch: firstLaunch})
+    this.setState({selectedCountries: storedCountries})
 
     // sets all our states up
     this.getHolidayData(storedCountries, firstLaunch, storedUrlCache)
@@ -52,19 +58,59 @@ export default class Main extends React.Component {
   getHolidayData = async (selectedCountries, firstLaunch, urlCache = this.state.urlCache) => {
     this.setState({loading: "true"})
     var results = await GetHolidayData(selectedCountries, firstLaunch, urlCache)
+    if (results == "error") {
+      this.setState({errorModalVisible: true})
+      this.setState({loading: "false"})
+    }
+    else {
+      await this.setState({markers: results.localMarkers})
+      await this.setState({selectedCountries: results.selectedCountries})
+      this.setState({urlCache: results.localUrlCache})
+      this.setState({loading: "false"})
 
-    await this.setState({markers: results.localMarkers})
-    await this.setState({selectedCountries: results.selectedCountries})
-    this.setState({urlCache: results.localUrlCache})
-    this.setState({loading: "false"})
+      _storeData('urlCache', JSON.stringify(results.localUrlCache))
+      _storeData('selectedCountries', JSON.stringify(results.selectedCountries))
+      _storeData('lastUpdate', JSON.stringify(results.lastUpdate))
+      _storeData('firstLaunch', JSON.stringify(results.firstLaunch))
 
-    _storeData('urlCache', JSON.stringify(results.localUrlCache))
-    _storeData('selectedCountries', JSON.stringify(results.selectedCountries))
-    _storeData('lastUpdate', JSON.stringify(results.lastUpdate))
-    _storeData('firstLaunch', JSON.stringify(results.firstLaunch))
-
-    ScheduleAllNotifications(results.allHolidaysArray)
+      ScheduleAllNotifications(results.allHolidaysArray)
+    }
   }
+
+  // Error modal functions -------------------------------------------------------------
+
+  closeErrorModal = (tryAgain) => {
+    if (tryAgain) {
+      this.getHolidayData(this.selectedCountries, this.firstLaunch)
+    }
+    this.setState({errorModalVisible: false})
+  }
+
+  renderErrorModal = () => {
+    return (
+      <Modal style = {{flex: 1}}
+        isVisible={this.state.errorModalVisible}
+        swipeDirection="down"
+        onSwipeComplete={() =>
+          this.closeErrorModal(false)}
+        onBackdropPress={() =>
+          this.closeErrorModal(false)}>
+        <View style={mainStyles.modalContent}>
+          <Text style={mainStyles.modalError}>{"Error"}</Text>
+          <Text style={mainStyles.modalErrorMsg}>{"Check your internet connection"}</Text>
+          <Text>{" "}</Text>
+          <Text>{" "}</Text>
+          <Button containerStyle = {mainStyles.errorButtonContainer}
+            buttonStyle = {mainStyles.errorButtonStyle}
+            title = "Try Again"
+            onPress = {() => {
+              this.closeErrorModal(true)}} />
+        </View>
+      </Modal>
+    )
+  }
+
+  // ----------------------------------------------------------------------------------
 
   render () {
     return (
@@ -82,6 +128,7 @@ export default class Main extends React.Component {
             <ActivityIndicator size="small" animating = {this.state.loading}/>
           </View>
         </Header>
+        {this.renderErrorModal()}
         <View style = {mainStyles.calContainer}>
           <Cal
             markers={this.state.markers} />
