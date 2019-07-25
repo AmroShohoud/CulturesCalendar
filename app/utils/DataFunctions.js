@@ -122,7 +122,7 @@ function ScheduleNotification (country, holiday, desc, date) {
   if (desc != null) {
     body = body + ": " + desc
   }
-  Notifications.scheduleLocalNotificationAsync(
+  var result = Notifications.scheduleLocalNotificationAsync(
     {
       title: holiday,
       body: body
@@ -131,6 +131,7 @@ function ScheduleNotification (country, holiday, desc, date) {
       time: date
     }
   )
+  return result
 }
 // -------------------------------------------------------------------------
 
@@ -157,27 +158,44 @@ export async function ScheduleAllNotifications (holidayArray) {
   // (because we will reschedule the notifications the user has chosen)
   await Notifications.cancelAllScheduledNotificationsAsync()
 
-
+  // Time of the day for notifications (for now just scheduled for start of new day local time)
   var time = 'T00:00'
-  var localMarkers = {}
 
-  // Format of objects to be passed into Calendar component's 'markedDates'
-  // {'date': {dots: [{key: xxx, name: xxx, color: xxx, description: xxx},
-  // {key: yyy, name: yyy, color: yyy, description: yyy}]}}
+  // Create array of holiday objects sorted by date
+  // We will pick the first 50 objects in this array
+  // Used to handle iOS (64) and Android (50) notification limits
+  var sortedHolidayArray = []
   for (var i = 0; i < holidayArray.length; i++) {
     for (var j = 0; j < holidayArray[i].holidays.length; j++) {
       var holiday = holidayArray[i].holidays[j]
-
-      // schedule holiday notifications
-      // TODO offset by local time of country that holiday celebrated in
-      if (holiday.type[0] != "Season" && holiday.type[0] != "Clock change\/Daylight Saving Time") {
+      // Get rid of 'holidays' just as summmer solstice
+      if (!holiday.type.includes("Season") && holiday.type[0] != "Clock change\/Daylight Saving Time") {
         var date = new Date(holiday.date.iso+time)
         var dateUTC = new Date(date.getTime() + date.getTimezoneOffset() * 60000)
         if (dateUTC > new Date()) {
-          ScheduleNotification(holidayArray[i].countryLong, holiday.name, holiday.description, dateUTC)
+          holiday['dateUTC'] = dateUTC
+          holiday['countryLong'] = holidayArray[i].countryLong
+          sortedHolidayArray.push(holiday)
         }
       }
     }
+  }
+
+  var date_sort_asc = function (holiday1, holiday2) {
+    // This is a comparison function that will result in dates being sorted in
+    // ASCENDING order
+    if (new Date(holiday1.date.iso) > new Date(holiday2.date.iso)) return 1
+    if (new Date(holiday1.date.iso) < new Date(holiday2.date.iso)) return -1
+    return 0;
+  }
+  sortedHolidayArray.sort(date_sort_asc)
+
+  // schedule holiday notifications
+  // TODO offset by local time of country that holiday celebrated in
+  var maxK = sortedHolidayArray.length < 50 ? sortedHolidayArray.length : 50
+  for (var k = 0; k < maxK; k++) {
+    var holiday = sortedHolidayArray[k]
+    ScheduleNotification(holiday.countryLong, holiday.name, holiday.description, holiday.dateUTC)
   }
 }
 

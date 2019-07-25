@@ -47,9 +47,16 @@ export default class Main extends React.Component {
     // sets all our states up
     this.getHolidayData(storedCountries, firstLaunch, storedUrlCache)
 
-    // Set background task for updating data
-    // TODO check if task already registered
-    await BackgroundFetch.registerTaskAsync(UPDATE_HOLIDAYS_TASK_NAME, {minimumInterval: 10}) //TODO change interval
+    // Check if background task already registered
+    var isRegistered = await TaskManager.isTaskRegisteredAsync(
+      UPDATE_HOLIDAYS_TASK_NAME
+    )
+    //if (!isRegistered) {
+      // Set background task for updating data
+      //var seconds = 604800 // Check once a week if an update is necessary
+      var seconds = 10
+      await BackgroundFetch.registerTaskAsync(UPDATE_HOLIDAYS_TASK_NAME, {minimumInterval: seconds}) //TODO change interval
+    //}
 
     // TODO delete these lines after done testing
     var tasks = await TaskManager.getRegisteredTasksAsync()
@@ -57,22 +64,29 @@ export default class Main extends React.Component {
 
   getHolidayData = async (selectedCountries, firstLaunch, urlCache = this.state.urlCache) => {
     this.setState({loading: "true"})
+
+    // Run our main GetHolidayData function
     var results = await GetHolidayData(selectedCountries, firstLaunch, urlCache)
+
+    // Check if we received an error when accessing internet API
     if (results == "error") {
       this.setState({errorModalVisible: true})
       this.setState({loading: "false"})
     }
     else {
+      // Set state variables
       await this.setState({markers: results.localMarkers})
       await this.setState({selectedCountries: results.selectedCountries})
       this.setState({urlCache: results.localUrlCache})
       this.setState({loading: "false"})
 
+      // Store data in async storage
       _storeData('urlCache', JSON.stringify(results.localUrlCache))
       _storeData('selectedCountries', JSON.stringify(results.selectedCountries))
       _storeData('lastUpdate', JSON.stringify(results.lastUpdate))
       _storeData('firstLaunch', JSON.stringify(results.firstLaunch))
 
+      // schedule notifications for next 50 holidays
       ScheduleAllNotifications(results.allHolidaysArray)
     }
   }
@@ -142,24 +156,42 @@ export default class Main extends React.Component {
   }
 }
 
+/*
+  Runs once every 2 weeks if user does not open app.
+  Serves 3 Purposes
+    1. If new year, updated holidays to get new year worth of data
+    2. Calendarific API updates data every quarter (may include revisions/holiday date changes/more data)
+      - update every 2 weeks to catch this update
+    3. Schedule new round of 50 notifications
+      - (don't expect user to have more than 50 notifications in a 2 week range)
+*/
 TaskManager.defineTask(UPDATE_HOLIDAYS_TASK_NAME, async () => {
   try {
+    // check if it has been enough time since last update
     var lastUpdateDict = await _retrieveData('lastUpdate')
-    var lastUpdate = lastUpdateDict[date]
+    var lastUpdate = lastUpdateDict.date
     lastUpdate = new Date(lastUpdate)
-
+    //var days = 14 // update every 2 weeks
+    //var nextUpdate = lastUpdate.setDate(date.getDate() + days);
     var nextUpdate = lastUpdate.setHours(lastUpdate.getHours(),lastUpdate.getMinutes()+1,0,0);
     var current = new Date()
 
     if (current > nextUpdate) {
+      // Pull async data
       var urlCache = {} // Want to incorporate updates by Calendarific to current holiday data
       var storedCountries = await _retrieveData('selectedCountries')
       var firstLaunch = await _retrieveData('firstLaunch')
 
+      // Run our main GetHolidayData function
       var results = await GetHolidayData(storedCountries, firstLaunch, urlCache)
-      _storeData('urlCache', JSON.stringify(results.urlCache))
-      _storeData('lastUpdate', results.lastUpdate)
 
+      // Store the results
+      console.log(results.localUrlCache)
+      console.log(results.lastUpdate)
+      _storeData('urlCache', JSON.stringify(results.localUrlCache))
+      _storeData('lastUpdate', JSON.stringify(results.lastUpdate))
+
+      // Schedule our next 50 notifications
       ScheduleAllNotifications(results.allHolidaysArray)
       console.log("updated")
     }
