@@ -51,12 +51,12 @@ export default class Main extends React.Component {
     var isRegistered = await TaskManager.isTaskRegisteredAsync(
       UPDATE_HOLIDAYS_TASK_NAME
     )
-    //if (!isRegistered) {
+    if (!isRegistered) {
       // Set background task for updating data
-      //var seconds = 604800 // Check once a week if an update is necessary
-      var seconds = 10
+      var seconds = 604800 // Check once a week if an update is necessary
+      //var seconds = 10 // For testing
       await BackgroundFetch.registerTaskAsync(UPDATE_HOLIDAYS_TASK_NAME, {minimumInterval: seconds}) //TODO change interval
-    //}
+    }
 
     // TODO delete these lines after done testing
     var tasks = await TaskManager.getRegisteredTasksAsync()
@@ -171,9 +171,9 @@ TaskManager.defineTask(UPDATE_HOLIDAYS_TASK_NAME, async () => {
     var lastUpdateDict = await _retrieveData('lastUpdate')
     var lastUpdate = lastUpdateDict.date
     lastUpdate = new Date(lastUpdate)
-    //var days = 14 // update every 2 weeks
-    //var nextUpdate = lastUpdate.setDate(date.getDate() + days);
-    var nextUpdate = lastUpdate.setHours(lastUpdate.getHours(),lastUpdate.getMinutes()+1,0,0);
+    var days = 14 // update every 2 weeks
+    var nextUpdate = lastUpdate.setDate(date.getDate() + days);
+    //var nextUpdate = lastUpdate.setHours(lastUpdate.getHours(),lastUpdate.getMinutes()+1,0,0) //For testing
     var current = new Date()
 
     if (current > nextUpdate) {
@@ -186,16 +186,14 @@ TaskManager.defineTask(UPDATE_HOLIDAYS_TASK_NAME, async () => {
       var results = await GetHolidayData(storedCountries, firstLaunch, urlCache)
 
       // Store the results
-      console.log(results.localUrlCache)
-      console.log(results.lastUpdate)
       _storeData('urlCache', JSON.stringify(results.localUrlCache))
       _storeData('lastUpdate', JSON.stringify(results.lastUpdate))
 
       // Schedule our next 50 notifications
       ScheduleAllNotifications(results.allHolidaysArray)
       console.log("updated")
+      var receivedNewData = true
     }
-    var receivedNewData = true
     return receivedNewData ? BackgroundFetch.Result.NewData : BackgroundFetch.Result.NoData;
   } catch (error) {
     console.log(error)
