@@ -3,26 +3,22 @@ Cultures Calendar allows you to stay connected with holidays of many different c
 
 The hope is that this app will help make the world a smaller place as we learn about other cultures and keep up with our own!
 
-## Calendar loading in selected countries
+## Calendar loads in holidays for your selected countries
 <br>
 <img align = "center" src="https://github.com/AmroShohoud/CulturesCalendar/blob/master/screenshots/LoadingCalendar.PNG" alt="LoadingCalendar" width="250"/>
 
-## Current month
-<br>
-<img align = "center" src="https://github.com/AmroShohoud/CulturesCalendar/blob/master/screenshots/Calendar.PNG" alt="Calendar" width="250"/>
-
-## Ranges from previous year
-<br>
-<img align = "center" src="https://github.com/AmroShohoud/CulturesCalendar/blob/master/screenshots/CalendarStart.PNG" alt="Calendar" width="250"/>
-
-## To next year
-<br>
-<img align = "center" src="https://github.com/AmroShohoud/CulturesCalendar/blob/master/screenshots/CalendarEnd.PNG" alt="Calendar" width="250"/>
+<p float="left">
+  <img src="https://github.com/AmroShohoud/CulturesCalendar/blob/master/screenshots/Calendar.PNG" width="250" />
+  <img src="https://github.com/AmroShohoud/CulturesCalendar/blob/master/screenshots/CalendarStart.PNG" width="250" /> 
+  <img src="https://github.com/AmroShohoud/CulturesCalendar/blob/master/screenshots/CalendarEnd.PNG" width="250" />
+</p>
 
 ## Tap on a day for details on the holidays
 <br>
-<img align = "center" src="https://github.com/AmroShohoud/CulturesCalendar/blob/master/screenshots/HolidayModal1.PNG" alt="HolidayModal1" width="250"/>
-<img align = "center" src="https://github.com/AmroShohoud/CulturesCalendar/blob/master/screenshots/HolidayModal2.PNG" alt="HolidayModal2" width="250"/>
+<p float="left">
+  <img src="https://github.com/AmroShohoud/CulturesCalendar/blob/master/screenshots/HolidayModal1.PNG" width="250" />
+  <img src="https://github.com/AmroShohoud/CulturesCalendar/blob/master/screenshots/HolidayModal2.PNG" width="250" /> 
+</p>
 
 ## Choose from a large selection of countries
 <br>
