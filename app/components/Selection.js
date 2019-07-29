@@ -6,12 +6,13 @@ import {AsyncStorage,
   Text,
   TouchableHighlight,
   View} from 'react-native'
-import {Button, CheckBox} from 'react-native-elements'
+import {Button, CheckBox, ThemeProvider} from 'react-native-elements'
 import CustomMultiPicker from "react-native-multiple-select-list"
 import {_storeData, _retrieveData, _deleteData} from '../utils/AsyncData'
 import {countryOptions} from '../utils/Options'
-import {selStyles} from '../utils/Styles'
+import {selStyles, buttonColor} from '../utils/Styles'
 import ReactMultiSelectCheckboxes from 'react-multiselect-checkboxes'
+import {HasPermissions, GetHolidayData} from '../utils/DataFunctions'
 
 //TODO
 //class SelectionItem extends React.PureComponent {
@@ -22,7 +23,7 @@ class Selection extends React.Component {
    constructor(props) {
     super(props)
     this.state = {
-      selected: {},
+      selectedCountries: {},
       selModalVisible: false
     }
   }
@@ -32,40 +33,37 @@ class Selection extends React.Component {
     this.setState({selModalVisible: visible})
   }
 
-  openModal = () => {
+  openModal = async () => {
     // extra check to make sure selected countries matches what is in calendar
-    this.setState({selected: this.props.countries})
+    await this.setState({selectedCountries: this.props.selectedCountries})
     this.setSelModalVisible(true)
   }
 
   exitModal = async () => {
-    console.log("fetching holidays")
     this.setSelModalVisible(false)
-    await _deleteData('markers')
-    await this.saveSelected()
-    await this.props.getHolidayData(this.state.selected, false)
-    console.log("done")
+    this.saveSelected()
+    await this.props.getHolidayData(this.state.selectedCountries, false)
   }
 
   // -----------------------------------------------------------------------
 
   // Selection Processing methods ------------------------------------------
   isSelectedCountry = (country) => {
-    if (country in this.state.selected) {
+    if (country in this.state.selectedCountries) {
       return true
     }
     return false
   }
 
   isSelectedType = (country, type) => {
-    if (this.isSelectedCountry(country) && this.state.selected[country].includes(type)) {
+    if (this.isSelectedCountry(country) && this.state.selectedCountries[country].includes(type)) {
         return true
     }
     return false
   }
   // executed every time a country checkbox is clicked on
   setSelectedCountry = async (country, types = ['all']) => {
-    var localSelected = this.state.selected
+    var localSelected = this.state.selectedCountries
     // Country is not checked, check it and associated type checkboxes
     if (!this.isSelectedCountry(country)) {
       localSelected[country] = types
@@ -74,12 +72,12 @@ class Selection extends React.Component {
     else {
       delete localSelected[country]
     }
-    await this.setState({selected: localSelected})
+    await this.setState({selectedCountries: localSelected})
   }
 
   // executed every time a type checkbox is clicked on
   setSelectedType = async (country, type) => {
-    var localSelected = this.state.selected
+    var localSelected = this.state.selectedCountries
     // Type checkbox is unchecked
     if (!this.isSelectedCountry(country)) {
       localSelected[country] = [type]
@@ -96,16 +94,16 @@ class Selection extends React.Component {
         delete localSelected[country]
       }
     }
-    await this.setState({selected: localSelected})
+    await this.setState({selectedCountries: localSelected})
   }
 
   clearSelected = () => {
-    this.setState({selected: {}})
+    this.setState({selectedCountries: {}})
   }
 
   // executed on modal close to save selected countries in persistence storage
   saveSelected = () => {
-    _storeData('selected', JSON.stringify(this.state.selected))
+    _storeData('selected', JSON.stringify(this.state.selectedCountries))
   }
 
   // -----------------------------------------------------------------------
@@ -131,6 +129,7 @@ class Selection extends React.Component {
     return types.map((type, i) => {
       return (
         <CheckBox key = {countryInfo.name.concat(type)}
+          checkedColor = {buttonColor}
           containerStyle = {selStyles.typeCheckboxes}
           title={type}
           checked={this.isSelectedType(countryInfo.code, type)}
@@ -154,6 +153,7 @@ class Selection extends React.Component {
         <View key = {countryInfo.code}>
           <CheckBox key = {countryInfo.name}
             containerStyle = {selStyles.countryCheckboxes}
+            checkedColor = {buttonColor}
             title={countryInfo.name}
             checked={this.isSelectedCountry(countryInfo.code)}
             onPress = {() => {
@@ -173,6 +173,7 @@ class Selection extends React.Component {
         <View key = {countryInfo.code}>
           <CheckBox key = {countryInfo.name}
             containerStyle = {selStyles.countryCheckboxes}
+            checkedColor = {buttonColor}
             title={countryInfo.name}
             checked={this.isSelectedCountry(countryInfo.code)}
             onPress = {() => {
@@ -191,8 +192,9 @@ class Selection extends React.Component {
   render() {
     return (
       <View>
-        <Button title = "Choose Countries" onPress = {() => {
-              this.openModal() }}
+        <Button buttonStyle={selStyles.buttonStyle} title = "Choose Countries"
+          onPress = {() => {
+            this.openModal() }}
           />
         <Modal visible={this.state.selModalVisible}
         >
@@ -205,13 +207,16 @@ class Selection extends React.Component {
               keyExtractor={(item, index) => index.toString()} />
             <View style={{flexDirection:"row"}}>
               <View style={{flex:1}}>
-                <Button title="Clear" type = "outline" onPress= {() =>
-                  {this.clearSelected()}} />
+                <Button titleStyle = {selStyles.clearButtonTitle} buttonStyle={selStyles.clearButtonStyle}
+                  title="Clear" type = "outline"
+                  onPress= {() => {
+                    this.clearSelected()}} />
               </View>
               <Text>{" "}</Text>
               <View style={{flex:1}}>
-                <Button title="Close" onPress= {() =>
-                  {this.exitModal()}} />
+                <Button buttonStyle={selStyles.buttonStyle} title="Close"
+                  onPress= {() => {
+                    this.exitModal()}} />
               </View>
             </View>
           </View>

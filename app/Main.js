@@ -1,16 +1,19 @@
 import React, {Component} from 'react'
-import {Button, Platform, Text,
-  View, ScrollView, StatusBar} from 'react-native'
+import {
+  ActivityIndicator,
+  Text,
+  View
+  } from 'react-native'
 import {Container, Header, Content, Footer, Title} from 'native-base'
+import {Button} from 'react-native-elements'
+import Modal from 'react-native-modal'
 import Cal from './components/Cal'
 import Selection from './components/Selection'
 import {_storeData, _retrieveData} from './utils/AsyncData'
 import {mainStyles} from './utils/Styles'
-import {countryCodeOptions, countryColors} from './utils/Options'
 import * as BackgroundFetch from 'expo-background-fetch'
 import * as TaskManager from 'expo-task-manager'
-import * as Permissions from 'expo-permissions'
-import {Notifications} from 'expo'
+import {HasPermissions, GetHolidayData, ScheduleAllNotifications} from './utils/DataFunctions'
 
 const UPDATE_HOLIDAYS_TASK_NAME = 'updateHolidays'
 
@@ -19,249 +22,128 @@ export default class Main extends React.Component {
   constructor(props) {
     super(props)
     this.state = {
-      url: 'https://calendarific.com/api/v2/holidays?',
+      markers: {},
+      selectedCountries: {},
       urlCache: {},
-      api: '840729768871697006fe16d7b9292bdf83e0a658',
-      countries: {},
-      years: [],
-      markers: {}
+      loading: "false",
+      errorModalVisible: false,
+      firstLaunch: null
     }
   }
 
   // on mount pull our holiday data
   componentDidMount = async () => {
-    console.log("here")
+    // First check if we have permissions for notifications (prompt user if not)
+    await HasPermissions()
+
     // see if data is already stored on device
-    var storedCountries = await _retrieveData('selected')
+    var storedCountries = await _retrieveData('selectedCountries')
     var firstLaunch = await _retrieveData('firstLaunch')
-    // cache so we don't have to send requests for urls already stored
-    // used if user decides to select a new country in addition to keeping
-    // older ones selected or if holidays are stored in persistent storage
-    var urlCache = await _retrieveData('urlCache')
-    await this.hasPermissions()
-    this.getHolidayData(storedCountries, firstLaunch, urlCache)
-    //await BackgroundFetch.unregisterTaskAsync("updateHolidays")
-    const status = await BackgroundFetch.getStatusAsync()
-    console.log(BackgroundFetch.Status[status]) //Available
-    await BackgroundFetch.registerTaskAsync(UPDATE_HOLIDAYS_TASK_NAME, {minimumInterval: 10})
-    let isRegistered = await TaskManager.isTaskRegisteredAsync(
+    var storedUrlCache = await _retrieveData('urlCache')
+
+    this.setState({firstLaunch: firstLaunch})
+    this.setState({selectedCountries: storedCountries})
+
+    // sets all our states up
+    this.getHolidayData(storedCountries, firstLaunch, storedUrlCache)
+
+    // Check if background task already registered
+    var isRegistered = await TaskManager.isTaskRegisteredAsync(
       UPDATE_HOLIDAYS_TASK_NAME
     )
+    if (!isRegistered) {
+      // Set background task for updating data
+      var seconds = 604800 // Check once a week if an update is necessary
+      //var seconds = 10 // For testing
+      await BackgroundFetch.registerTaskAsync(UPDATE_HOLIDAYS_TASK_NAME, {minimumInterval: seconds}) //TODO change interval
+    }
+
+    // TODO delete these lines after done testing
     var tasks = await TaskManager.getRegisteredTasksAsync()
-    console.log(tasks)
-    console.log(isRegistered)
-
   }
 
-  // Notifications-specific methods ------------------------------------------
+  getHolidayData = async (selectedCountries, firstLaunch, urlCache = this.state.urlCache) => {
+    this.setState({loading: "true"})
 
-  // alertIfRemoteNotificationsDisabledAsync = async() => {
-  //   const { status } = await Permissions.getAsync(Permissions.NOTIFICATIONS);
-  //   if (status !== 'granted') {
-  //     alert('Enable notifications in settings to receive holiday notifications');
-  //   }
-  // }
+    // Run our main GetHolidayData function
+    var results = await GetHolidayData(selectedCountries, firstLaunch, urlCache)
 
-  hasPermissions = async() => {
-    var notifs = await Permissions.askAsync(Permissions.NOTIFICATIONS)
-    if (notifs.status === 'granted') {
-      console.log('Notification permissions granted.')
+    // Check if we received an error when accessing internet API
+    if (results == "error") {
+      this.setState({errorModalVisible: true})
+      this.setState({loading: "false"})
+    }
+    else {
+      // Set state variables
+      await this.setState({markers: results.localMarkers})
+      await this.setState({selectedCountries: results.selectedCountries})
+      this.setState({urlCache: results.localUrlCache})
+      this.setState({loading: "false"})
+
+      // Store data in async storage
+      _storeData('urlCache', JSON.stringify(results.localUrlCache))
+      _storeData('selectedCountries', JSON.stringify(results.selectedCountries))
+      _storeData('lastUpdate', JSON.stringify(results.lastUpdate))
+      _storeData('firstLaunch', JSON.stringify(results.firstLaunch))
+
+      // schedule notifications for next 50 holidays
+      ScheduleAllNotifications(results.allHolidaysArray)
     }
   }
 
-  scheduleNotification = async (country, holiday, desc, date) => {
-    var body = country
-    if (desc != null) {
-      body = body + ": " + desc
+  // Error modal functions -------------------------------------------------------------
+
+  closeErrorModal = (tryAgain) => {
+    if (tryAgain) {
+      this.getHolidayData(this.selectedCountries, this.firstLaunch)
     }
-    Notifications.scheduleLocalNotificationAsync(
-      {
-        title: holiday,
-        body: body
-      },
-      {
-        time: date
-      }
+    this.setState({errorModalVisible: false})
+  }
+
+  renderErrorModal = () => {
+    return (
+      <Modal style = {{flex: 1}}
+        isVisible={this.state.errorModalVisible}
+        swipeDirection="down"
+        onSwipeComplete={() =>
+          this.closeErrorModal(false)}
+        onBackdropPress={() =>
+          this.closeErrorModal(false)}>
+        <View style={mainStyles.modalContent}>
+          <Text style={mainStyles.modalError}>{"Error"}</Text>
+          <Text> {" "}</Text>
+          <Text style={mainStyles.modalErrorMsg}>{"Check your internet connection"}</Text>
+          <Text>{" "}</Text>
+          <Text>{" "}</Text>
+          <Button containerStyle = {mainStyles.errorButtonContainer}
+            buttonStyle = {mainStyles.errorButtonStyle}
+            title = "Try Again"
+            onPress = {() => {
+              this.closeErrorModal(true)}} />
+        </View>
+      </Modal>
     )
   }
 
-  // -------------------------------------------------------------------------
-
-  // Calendar-specific functions for initial rendering -----------------------
-
-  // parameters will be defined by user to narrow down holiday selection
-  createWebAddresses = (countries, years) => {
-    var urls = []
-    var apiParam = "api_key=" + this.state.api
-    var localCountries = Object.keys(countries)
-
-    for (var i = 0; i < years.length; i++) {
-      var yearParam = "&year=" + years[i]
-      for (var j = 0; j < localCountries.length; j++) {
-        var country = localCountries[j]
-        var countryParam = "&country=" + country
-        var types = countries[country]
-        for (var k = 0; k < types.length; k++) {
-          var typeParam = ''
-          if (types[k] != 'all') {
-            typeParam = '&type=' + types[k]
-          }
-          var url = [this.state.url, apiParam, countryParam, yearParam, typeParam]
-          urls = urls.concat({country: country, url: url.join('')})
-        }
-      }
-    }
-    return urls
-  }
-
-  // Put holidays into format to pass into the Calendar component for marking dates of holidays
-  // and set them as notifications
-  createDateMarkers = async (holidayArray) => {
-    // Cancel all previously scheduled notifications
-    // (because we will reschedule the notifications the user has chosen)
-    await Notifications.cancelAllScheduledNotificationsAsync()
-
-
-    var time = 'T00:00'
-    var localMarkers = {}
-
-    // Format of objects to be passed into Calendar component's 'markedDates'
-    // {'date': {dots: [{key: xxx, name: xxx, color: xxx, description: xxx},
-    // {key: yyy, name: yyy, color: yyy, description: yyy}]}}
-    for (var i = 0; i < holidayArray.length; i++) {
-      for (var j = 0; j < holidayArray[i].holidays.length; j++) {
-        var holiday = holidayArray[i].holidays[j]
-        var markerObj = {
-          key: i + "" + j,
-          name: holiday.name,
-          desc: holiday.description,
-          countryLong: holidayArray[i].countryLong,
-          color: countryColors[holidayArray[i].code]
-        }
-
-        // schedule holiday notifications
-        // TODO offset by local time of country that holiday celebrated in
-        if (holiday.type[0] != "Season" && holiday.type[0] != "Clock change\/Daylight Saving Time") {
-          var date = new Date(holiday.date.iso+time)
-          var dateUTC = new Date(date.getTime() + date.getTimezoneOffset() * 60000)
-          if (dateUTC > new Date()) {
-            this.scheduleNotification(holidayArray[i].countryLong, holiday.name, holiday.description, dateUTC)
-          }
-        }
-
-        // Be able to incorporate multiple holidays on same day
-        if (holiday.date.iso in localMarkers) {
-          // Do not save duplicates (API we are using has some)
-          if (localMarkers[holiday.date.iso].dots[0].name != holiday.name ||
-            localMarkers[holiday.date.iso].dots[0].description != holiday.desc) {
-            localMarkers[holiday.date.iso].dots.push(markerObj)
-          }
-        }
-        else {
-          localMarkers[holiday.date.iso] = {dots: [markerObj]}
-        }
-      }
-    }
-    await this.setState({markers: localMarkers})
-  }
-
-  // Set the years to this year, previous year, and next year
-  setYears = () => {
-    var date = new Date()
-    var cur = date.getFullYear()
-    var prev = cur - 1
-    var next = cur + 1
-    this.setState({years: [prev, cur, next]})
-    return [prev, cur, next]
-  }
-
-  // checks if holidays for a url are cached, if not makes API call
-  makeAPICalls = async (countries, years, urlCache) => {
-    var holidays = []
-    var allHolidays = []
-    var localCache = {}
-    var urls = this.createWebAddresses(countries, years)
-    for (var i = 0; i < urls.length; i++) {
-      var url = urls[i].url
-      //console.log(url)
-      var country = urls[i].country
-      if (url in urlCache) {
-        holidays = urlCache[url]
-        allHolidays = allHolidays.concat({countryLong: countryCodeOptions[country], code: country,
-          holidays: holidays})
-        localCache[url] = holidays
-      }
-      else {
-        holidays = await fetch(url)
-          .then(response => {
-            return response.json()
-          })
-          .then(myJson => {
-            return myJson.response.holidays
-          }).catch(err => {
-            console.log(err) //TODO check this and add modal that shows error message
-          })
-        localCache[url] = holidays
-        allHolidays = allHolidays.concat({countryLong: countryCodeOptions[country], code: country,
-          holidays: holidays})
-      }
-    }
-    this.setState({urlCache: localCache})
-    _storeData('urlCache', JSON.stringify(localCache))
-    return allHolidays
-  }
-
-  // this method hooks into all the processing that goes into building our
-  // country holiday objects
-  getHolidayData = async (selectedCountries = null, firstLaunch, urlCache = this.state.urlCache) => {
-    // first time app is being launched
-    // (want to have default holidays so user can see functionality)
-    if (firstLaunch == null) {
-      // set up our defaults
-      var countries = {'US': ['religious'], 'EG': ['all']}
-      this.setState({countries: countries})
-      var years = this.setYears()
-
-      // get data and
-      var allHolidays = await this.makeAPICalls(countries, years)
-      this.createDateMarkers(allHolidays)
-      await _storeData('selected', JSON.stringify(countries))
-      await _storeData('firstLaunch', JSON.stringify({first: false}))
-    }
-    // User has no countries selected and this is not the first launch
-    // meaning user has deliberately selected no countries
-    else if (selectedCountries == null) {
-       // Set this empty value to avoid errors during rendering empty calendar
-      this.setState({markers: {}})
-      this.setState({curHolidays: {dots: [{key: ''}]}})
-    }
-    // User has selected countries, pull the data for those countries
-    else
-    {
-      var countries = selectedCountries
-      this.setState({countries: countries})
-      this.setState({urlCache: urlCache})
-      var years = this.setYears()
-
-      // get data and
-      var allHolidays = await this.makeAPICalls(countries, years, urlCache)
-      this.createDateMarkers(allHolidays)
-      await _storeData('selected', JSON.stringify(countries))
-      var d = new Date()
-      _storeData('lastUpdate', d.toString())
-    }
-  }
-
-  //--------------------------------------------------------------------------
+  // ----------------------------------------------------------------------------------
 
   render () {
     return (
       <Container>
-        <Header style={mainStyles.colors}>
-          <Selection countries = {this.state.countries}
-            getHolidayData = {(selected, firstLaunch) => {
-          this.getHolidayData(selected, firstLaunch) }} />
+        <Header style={[mainStyles.colors, {justifyContent: 'space-between'}]}>
+          <View>
+           <ActivityIndicator size="small" animating="false" />
+          </View>
+          <View>
+            <Selection selectedCountries = {this.state.selectedCountries}
+              getHolidayData = {(selectedCountries, firstLaunch) => {
+            this.getHolidayData(selectedCountries, firstLaunch) }} />
+          </View>
+          <View style={{justifyContent: 'center'}}>
+            <ActivityIndicator size="small" animating = {this.state.loading}/>
+          </View>
         </Header>
+        {this.renderErrorModal()}
         <View style = {mainStyles.calContainer}>
           <Cal
             markers={this.state.markers} />
@@ -274,31 +156,47 @@ export default class Main extends React.Component {
   }
 }
 
+/*
+  Runs once every 2 weeks if user does not open app.
+  Serves 3 Purposes
+    1. If new year, updated holidays to get new year worth of data
+    2. Calendarific API updates data every quarter (may include revisions/holiday date changes/more data)
+      - update every 2 weeks to catch this update
+    3. Schedule new round of 50 notifications
+      - (don't expect user to have more than 50 notifications in a 2 week range)
+*/
 TaskManager.defineTask(UPDATE_HOLIDAYS_TASK_NAME, async () => {
-  console.log("new")
   try {
-    var lastUpdate = await _retrieveData('lastUpdate')
+    // check if it has been enough time since last update
+    var lastUpdateDict = await _retrieveData('lastUpdate')
+    var lastUpdate = lastUpdateDict.date
     lastUpdate = new Date(lastUpdate)
-      console.log("new1")
-    // var nextUpdate = new Date(lastUpdate.setMonth(lastUpdate.getMonth()+1));
-    var nextUpdate = lastUpdate.setHours(lastUpdate.getHours(),lastUpdate.getMinutes()+1,0,0);
+    var days = 14 // update every 2 weeks
+    var nextUpdate = lastUpdate.setDate(date.getDate() + days);
+    //var nextUpdate = lastUpdate.setHours(lastUpdate.getHours(),lastUpdate.getMinutes()+1,0,0) //For testing
     var current = new Date()
-      console.log("new2")
-    if (current > nextUpdate) {
-        console.log("new3")
-      var urls = _retrieveData('urlCache')
-      console.log("break1")
-      var storedCountries = await _retrieveData('selected')
-      console.log("break2")
-      var firstLaunch = await _retrieveData('firstLaunch')
-      console.log("break3")
 
-      this.getHolidayData(storedCountries, firstLaunch, urlCache)
-      console.log("updating")
+    if (current > nextUpdate) {
+      // Pull async data
+      var urlCache = {} // Want to incorporate updates by Calendarific to current holiday data
+      var storedCountries = await _retrieveData('selectedCountries')
+      var firstLaunch = await _retrieveData('firstLaunch')
+
+      // Run our main GetHolidayData function
+      var results = await GetHolidayData(storedCountries, firstLaunch, urlCache)
+
+      // Store the results
+      _storeData('urlCache', JSON.stringify(results.localUrlCache))
+      _storeData('lastUpdate', JSON.stringify(results.lastUpdate))
+
+      // Schedule our next 50 notifications
+      ScheduleAllNotifications(results.allHolidaysArray)
+      console.log("updated")
+      var receivedNewData = true
     }
-    const receivedNewData = true
     return receivedNewData ? BackgroundFetch.Result.NewData : BackgroundFetch.Result.NoData;
   } catch (error) {
+    console.log(error)
     return BackgroundFetch.Result.Failed;
   }
 });

@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "CulturesCalendar",
-    "slug": "Calendar",
+    "name": "Cultures Calendar",
+    "slug": "cultures-calendar",
     "privacy": "public",
     "sdkVersion": "33.0.0",
     "platforms": [
@@ -21,16 +21,20 @@
       "fallbackToCacheTimeout": 0
     },
     "assetBundlePatterns": [
-      "**/*"
+      "assets/"
     ],
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "com.cal.culturescalendar",
       "infoPlist": {
         "UIBackgroundModes": [
           "location",
           "fetch"
         ]
       }
+    },
+    "android": {
+      "package": "com.cal.culturescalendar"
     }
   }
 }

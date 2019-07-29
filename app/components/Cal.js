@@ -13,6 +13,7 @@ import {calStyles, calTheme} from '../utils/Styles'
 import Selection from './Selection'
 import {countryCodeOptions, countryColors} from '../utils/Options'
 import {_retrieveData} from '../utils/AsyncData'
+import {HasPermissions, GetHolidayData} from '../utils/DataFunctions'
 
 
 // Cal is the main calendar component of the app
@@ -69,6 +70,24 @@ class Cal extends React.Component {
     }
   }
   // -----------------------------------------------------------------------
+  // Calculate number of month display range for calendar ------------------
+
+  futureMonths = () => {
+    var currentDate = new Date()
+    var currentMonth = currentDate.getMonth()
+    var monthsToEnd = 12 - currentMonth - 1
+    var total = monthsToEnd + 12
+    return total
+  }
+
+  pastMonths = () => {
+    var currentDate = new Date()
+    var currentMonth = currentDate.getMonth()
+    var total = currentMonth + 12
+    return total
+  }
+  // -----------------------------------------------------------------------
+
   render() {
     return (
       <View>
@@ -77,8 +96,8 @@ class Cal extends React.Component {
             style = {calStyles.background}
             theme = {calTheme}
             markedDates = {this.props.markers}
-            pastScrollRange={50}
-            futureScrollRange={50}
+            pastScrollRange={this.pastMonths()}
+            futureScrollRange={this.futureMonths()}
             markingType = {'multi-dot'}
             onDayPress = {(day) => {
               this.showHolidayDetails(day) }}
