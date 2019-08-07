@@ -172,7 +172,7 @@ TaskManager.defineTask(UPDATE_HOLIDAYS_TASK_NAME, async () => {
     var lastUpdate = lastUpdateDict.date
     lastUpdate = new Date(lastUpdate)
     var days = 14 // update every 2 weeks
-    var nextUpdate = lastUpdate.setDate(date.getDate() + days);
+    var nextUpdate = lastUpdate.setDate(lastUpdate.getDate() + days);
     //var nextUpdate = lastUpdate.setHours(lastUpdate.getHours(),lastUpdate.getMinutes()+1,0,0) //For testing
     var current = new Date()
 
