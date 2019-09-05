@@ -40,6 +40,9 @@ export default class Main extends React.Component {
     var storedCountries = await _retrieveData('selectedCountries')
     var firstLaunch = await _retrieveData('firstLaunch')
     var storedUrlCache = await _retrieveData('urlCache')
+    if (storedUrlCache == null) {
+      storedUrlCache = {}
+    }
 
     this.setState({firstLaunch: firstLaunch})
     this.setState({selectedCountries: storedCountries})
@@ -64,7 +67,6 @@ export default class Main extends React.Component {
 
   getHolidayData = async (selectedCountries, firstLaunch, urlCache = this.state.urlCache) => {
     this.setState({loading: "true"})
-
     // Run our main GetHolidayData function
     var results = await GetHolidayData(selectedCountries, firstLaunch, urlCache)
 
