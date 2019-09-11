@@ -192,10 +192,10 @@ class Selection extends React.Component {
   render() {
     return (
       <View>
-        <Button buttonStyle={selStyles.buttonStyle} title = "Choose Countries"
-          onPress = {() => {
-            this.openModal() }}
-          />
+        <TouchableHighlight onPress = {() => {
+            this.openModal() }} >
+            <Text>{"Choose Countries"}</Text>
+        </TouchableHighlight>
         <Modal visible={this.state.selModalVisible}
         >
           <View style = {selStyles.modalContent}>

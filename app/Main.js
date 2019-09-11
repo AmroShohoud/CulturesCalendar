@@ -7,12 +7,16 @@ import {
 import {Container, Header, Content, Footer, Title} from 'native-base'
 import {Button} from 'react-native-elements'
 import Modal from 'react-native-modal'
+import { Ionicons } from '@expo/vector-icons'
+import * as BackgroundFetch from 'expo-background-fetch'
+import * as TaskManager from 'expo-task-manager'
+
+import Menu from './components/Menu'
 import Cal from './components/Cal'
 import Selection from './components/Selection'
 import {_storeData, _retrieveData} from './utils/AsyncData'
 import {mainStyles} from './utils/Styles'
-import * as BackgroundFetch from 'expo-background-fetch'
-import * as TaskManager from 'expo-task-manager'
+
 import {HasPermissions, GetHolidayData, ScheduleAllNotifications} from './utils/DataFunctions'
 
 const UPDATE_HOLIDAYS_TASK_NAME = 'updateHolidays'
@@ -134,12 +138,9 @@ export default class Main extends React.Component {
       <Container>
         <Header style={[mainStyles.colors, {justifyContent: 'space-between'}]}>
           <View>
-           <ActivityIndicator size="small" animating="false" />
-          </View>
-          <View>
-            <Selection selectedCountries = {this.state.selectedCountries}
+            <Menu selectedCountries = {this.state.selectedCountries}
               getHolidayData = {(selectedCountries, firstLaunch) => {
-            this.getHolidayData(selectedCountries, firstLaunch) }} />
+              this.getHolidayData(selectedCountries, firstLaunch) }} />
           </View>
           <View style={{justifyContent: 'center'}}>
             <ActivityIndicator size="small" animating = {this.state.loading}/>
@@ -161,7 +162,7 @@ export default class Main extends React.Component {
 /*
   Runs once every 2 weeks if user does not open app.
   Serves 3 Purposes
-    1. If new year, updated holidays to get new year worth of data
+    1. If new year, update holidays to get new year worth of data
     2. Calendarific API updates data every quarter (may include revisions/holiday date changes/more data)
       - update every 2 weeks to catch this update
     3. Schedule new round of 50 notifications

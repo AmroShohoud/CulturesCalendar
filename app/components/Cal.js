@@ -9,6 +9,7 @@ import {Calendar,
   Agenda} from 'react-native-calendars'
 import {Button} from 'react-native-elements'
 import Modal from 'react-native-modal'
+
 import {calStyles, calTheme} from '../utils/Styles'
 import Selection from './Selection'
 import {countryCodeOptions, countryColors} from '../utils/Options'
