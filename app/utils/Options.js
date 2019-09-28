@@ -256,7 +256,7 @@ export const countryOptions = [
 	{code: 'AL', name: 'Albania'},
 	{code: 'DZ', name: 'Algeria'},
 	{code: 'AS', name: 'American Samoa'},
-	{code: 'AD', name: 'AndorrA'},
+	{code: 'AD', name: 'Andorra'},
 	{code: 'AO', name: 'Angola'},
 	{code: 'AI', name: 'Anguilla'},
 	{code: 'AG', name: 'Antigua and Barbuda'},

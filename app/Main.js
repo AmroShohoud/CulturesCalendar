@@ -13,8 +13,7 @@ import * as TaskManager from 'expo-task-manager'
 
 import Menu from './components/Menu'
 import Cal from './components/Cal'
-import Selection from './components/Selection'
-import {_storeData, _retrieveData} from './utils/AsyncData'
+import {_storeData, _retrieveData, _deleteData} from './utils/AsyncData'
 import {mainStyles} from './utils/Styles'
 
 import {HasPermissions, GetHolidayData, ScheduleAllNotifications} from './utils/DataFunctions'
@@ -41,6 +40,16 @@ export default class Main extends React.Component {
     await HasPermissions()
 
     // see if data is already stored on device
+    var notifTime = await _retrieveData('notifTime')
+    // if notification time is null (should only happen on first launch)
+    // set the notification time to 12 AM UTC time
+    if (notifTime == null) {
+      notifTime = 'T00:00'
+    }
+    else {
+      notifTime = notifTime.time
+      console.log(notifTime);
+    }
     var storedCountries = await _retrieveData('selectedCountries')
     var firstLaunch = await _retrieveData('firstLaunch')
     var storedUrlCache = await _retrieveData('urlCache')
@@ -52,7 +61,7 @@ export default class Main extends React.Component {
     this.setState({selectedCountries: storedCountries})
 
     // sets all our states up
-    this.getHolidayData(storedCountries, firstLaunch, storedUrlCache)
+    this.getHolidayData(storedCountries, firstLaunch, notifTime, storedUrlCache)
 
     // Check if background task already registered
     var isRegistered = await TaskManager.isTaskRegisteredAsync(
@@ -69,14 +78,15 @@ export default class Main extends React.Component {
     var tasks = await TaskManager.getRegisteredTasksAsync()
   }
 
-  getHolidayData = async (selectedCountries, firstLaunch, urlCache = this.state.urlCache) => {
+  getHolidayData = async (selectedCountries, firstLaunch, notifTime, urlCache = this.state.urlCache) => {
     this.setState({loading: "true"})
     // Run our main GetHolidayData function
     var results = await GetHolidayData(selectedCountries, firstLaunch, urlCache)
 
     // Check if we received an error when accessing internet API
     if (results == "error") {
-      this.setState({errorModalVisible: true})
+      await this.setState({errorModalVisible: true})
+      console.log(this.state.errorModalVisible)
       this.setState({loading: "false"})
     }
     else {
@@ -93,7 +103,8 @@ export default class Main extends React.Component {
       _storeData('firstLaunch', JSON.stringify(results.firstLaunch))
 
       // schedule notifications for next 50 holidays
-      ScheduleAllNotifications(results.allHolidaysArray)
+      ScheduleAllNotifications(results.allHolidaysArray, notifTime)
+      _storeData('notifTime', JSON.stringify({'time':notifTime}))
     }
   }
 
@@ -193,7 +204,16 @@ TaskManager.defineTask(UPDATE_HOLIDAYS_TASK_NAME, async () => {
       _storeData('lastUpdate', JSON.stringify(results.lastUpdate))
 
       // Schedule our next 50 notifications
-      ScheduleAllNotifications(results.allHolidaysArray)
+      var notifTime = await _retrieveData('notifTime')
+      // if notification time is null (should only happen on first launch)
+      // set the notification time to 12 AM UTC time
+      if (notifTime == null) {
+        notifTime = 'T00:00'
+      }
+      else {
+        notifTime = notifTime.time
+      }
+      ScheduleAllNotifications(results.allHolidaysArray, notifTime)
       console.log("updated")
       var receivedNewData = true
     }

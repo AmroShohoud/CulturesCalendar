@@ -1,4 +1,4 @@
-import {_storeData, _retrieveData} from '../utils/AsyncData'
+import {_retrieveData} from '../utils/AsyncData'
 import {countryCodeOptions, countryColors} from '../utils/Options'
 import * as BackgroundFetch from 'expo-background-fetch'
 import * as TaskManager from 'expo-task-manager'
@@ -39,6 +39,7 @@ async function MakeAPICalls (countries, years, urlCache) {
           return response.json()
         })
         .then(myJson => {
+          console.log(myJson.response.holidays)
           return myJson.response.holidays
         }).catch(err => {
           console.log(err)
@@ -103,8 +104,9 @@ function CreateDateMarkers (holidayArray) {
       // Be able to incorporate multiple holidays on same day
       if (holiday.date.iso in localMarkers) {
         // Do not save duplicates (API we are using has some)
-        if (localMarkers[holiday.date.iso].dots[0].name != holiday.name ||
-          localMarkers[holiday.date.iso].dots[0].description != holiday.desc) {
+        if (!(localMarkers[holiday.date.iso].dots[0].name == holiday.name &&
+          localMarkers[holiday.date.iso].dots[0].description == holiday.desc &&
+          localMarkers[holiday.date.iso].dots[0].country == holiday.country)) {
           localMarkers[holiday.date.iso].dots.push(markerObj)
         }
       }
@@ -151,15 +153,18 @@ export async function HasPermissions () {
   }
 }
 
+export function dateToUTC(date, time) {
+  var date = new Date(date+time)
+  var dateUTC = new Date(date.getTime() + date.getTimezoneOffset() * 60000)
+  return dateUTC
+}
+
 // Put holidays into format to pass into the Calendar component for marking dates of holidays
 // and set them as notifications
-export async function ScheduleAllNotifications (holidayArray) {
-  // Cancel all previously scheduled notifications
+export async function ScheduleAllNotifications (holidayArray, time) {
+// Cancel all previously scheduled notifications
   // (because we will reschedule the notifications the user has chosen)
   await Notifications.cancelAllScheduledNotificationsAsync()
-
-  // Time of the day for notifications (for now just scheduled for start of new day local time)
-  var time = 'T00:00'
 
   // Create array of holiday objects sorted by date
   // We will pick the first 50 objects in this array
@@ -170,8 +175,7 @@ export async function ScheduleAllNotifications (holidayArray) {
       var holiday = holidayArray[i].holidays[j]
       // Get rid of 'holidays' just as summmer solstice
       if (!holiday.type.includes("Season") && holiday.type[0] != "Clock change\/Daylight Saving Time") {
-        var date = new Date(holiday.date.iso+time)
-        var dateUTC = new Date(date.getTime() + date.getTimezoneOffset() * 60000)
+        var dateUTC = dateToUTC(holiday.date.iso, time)
         if (dateUTC > new Date()) {
           holiday['dateUTC'] = dateUTC
           holiday['countryLong'] = holidayArray[i].countryLong

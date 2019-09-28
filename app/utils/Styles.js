@@ -41,7 +41,7 @@ export const mainStyles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center'
   }
-});
+})
 
 // Cal.js
 export const calStyles = StyleSheet.create({
@@ -78,18 +78,11 @@ export const calTheme = {
   todayTextColor: '#00cc00'
 }
 
-// Selection.js
+// Selection list styles
 export const selStyles = StyleSheet.create({
-  modalContainer: {
-    width: '90%',
-    height: '90%'
-  },
   modalContent: {
     backgroundColor: 'white',
-    padding: 22,
-    justifyContent: 'center',
-    borderRadius: 4,
-    borderColor: 'rgba(0, 0, 0, 0.1)'
+    flex: 1
   },
   countryCheckboxes: {
     backgroundColor: 'white',
@@ -113,6 +106,11 @@ export const selStyles = StyleSheet.create({
   },
   clearButtonTitle: {
     color: buttonColor
+  },
+  buttonsView: {
+    flexDirection:'row',
+    paddingLeft: 10,
+    paddingRight: 10
   }
 })
 
@@ -122,15 +120,12 @@ const height = Dimensions.get('window').height
 
 export const menuStyles = StyleSheet.create({
     container : {
-        flex: 1,
         position : 'absolute',
         left: 0,
         top: 0,
         width : width,
         height : height,
         paddingTop : 10,
-        paddingLeft : 10,
-        paddingRight : 10,
         paddingBottom : 10
     },
      menu: {
@@ -139,14 +134,31 @@ export const menuStyles = StyleSheet.create({
         position : 'absolute',
         left: 0,
         top: 0,
-        width : width * 0.8,
+        width : width,
         height : height,
         paddingTop : 10,
-        paddingLeft : 10,
-        paddingRight : 10,
+
         paddingBottom : 10
     },
-    menuItem : {
-        paddingTop : 10
+    notifButton: {
+      height: '100%',
+      width: '100%',
+      alignItems: 'flex-start',
+      justifyContent: 'center',
+      backgroundColor: 'white',
+      paddingLeft: 10
+    },
+    notifButtonView: {
+      borderTopColor: 'lightgrey',
+      borderTopWidth: 0.5,
+      borderBottomColor: 'lightgrey',
+      borderBottomWidth: 0.5,
+      alignItems: 'flex-start'
+    },
+    notifText: {
+      fontSize: 16,
+      fontFamily: 'System',
+      fontWeight: 'bold',
+      color: '#484848'
     }
   })

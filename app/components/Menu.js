@@ -6,19 +6,20 @@ import {
   ScrollView,
   Text,
   TouchableOpacity,
-  View} from 'react-native'
+  TouchableHighlight,
+  View,
+StyleSheet} from 'react-native'
 import {Button, CheckBox, ThemeProvider} from 'react-native-elements'
 import CustomMultiPicker from "react-native-multiple-select-list"
 import {Ionicons} from '@expo/vector-icons'
 import ModalWrapper from 'react-native-modal-wrapper'
 import DateTimePicker from "react-native-modal-datetime-picker"
 
-import Selection from './Selection'
 import {_storeData, _retrieveData, _deleteData} from '../utils/AsyncData'
 import {countryOptions} from '../utils/Options'
-import {selStyles, buttonColor, menuStyles} from '../utils/Styles'
+import {menuStyles, selStyles, buttonColor} from '../utils/Styles'
 import ReactMultiSelectCheckboxes from 'react-multiselect-checkboxes'
-import {HasPermissions, GetHolidayData} from '../utils/DataFunctions'
+import {GetHolidayData, dateToUTC, ScheduleAllNotifications} from '../utils/DataFunctions'
 
 
 class Menu extends React.Component {
@@ -26,7 +27,14 @@ class Menu extends React.Component {
     super(props)
     this.state = {
       isVisible: false,
+      isTimeVisible: false,
+      selectedTime: null,
+      selectedCountries: {}
     }
+  }
+
+  componentDidMount = async () => {
+    await this.getSavedTime()
   }
 
   // Modal-specific methods ------------------------------------------------
@@ -35,47 +43,282 @@ class Menu extends React.Component {
   }
 
   openModal = async () => {
-    //await this.setState({selectedCountries: this.props.selectedCountries})
+    await this.setState({selectedCountries: this.props.selectedCountries})
     this.setVisible(true)
   }
 
   exitModal = async () => {
     this.setVisible(false)
-    this.saveSelected()
-    //await this.props.getHolidayData(this.state.selectedCountries, false)
   }
 
-  // ----------------------------------------------------------------------
+  // -----------------------------------------------------------------------
 
+  // TimePicker specific functions------------------------------------------
+
+  getSavedTime = async () => {
+    var notifTime = await _retrieveData('notifTime')
+    if (notifTime == null) {
+      notifTime = 'T00:00'
+    }
+    else {
+      notifTime = notifTime.time
+    }
+    var dateUTC = dateToUTC('2018-12-31', notifTime)
+    this.setState({selectedTime: dateUTC})
+  }
+
+  showTimePicker = async () => {
+    await this.getSavedTime()
+    this.setState({isTimeVisible: true})
+  }
+
+  cancelTimePicker = () => {
+    this.setState({isTimeVisible: false})
+  }
+
+  scheduleNotifications = async (timeStr) => {
+    var firstLaunch = await _retrieveData('firstLaunch')
+    var urlCache = await _retrieveData('urlCache')
+    if (urlCache == null) {
+      urlCache = {}
+    }
+    var results = await GetHolidayData(this.props.selectedCountries, firstLaunch, urlCache)
+
+    // Schedule our next 50 notifications
+    ScheduleAllNotifications(results.allHolidaysArray, timeStr)
+
+  }
+
+  // Store the time in AsyncStorage, schedule all notifications with new time, and close the modal
+  confirmTimePicker = (time) => {
+    var hours = time.getHours()
+    var minutes = time.getMinutes()
+    var timeStr = 'T'
+    if (hours < 10) { timeStr += '0' }
+    timeStr = timeStr + hours + ':'
+    if (minutes < 10) { timeStr += '0' }
+    timeStr += minutes
+    _storeData('notifTime', JSON.stringify({'time':timeStr}))
+    this.scheduleNotifications(timeStr)
+    this.setState({isTimeVisible: false})
+  }
+
+  // -----------------------------------------------------------------------
+
+  // Selection Processing methods ------------------------------------------
+  isSelectedCountry = (country) => {
+    if (country in this.state.selectedCountries) {
+      return true
+    }
+    return false
+  }
+
+  isSelectedType = (country, type) => {
+    if (this.isSelectedCountry(country) && this.state.selectedCountries[country].includes(type)) {
+        return true
+    }
+    return false
+  }
+  // executed every time a country checkbox is clicked on
+  setSelectedCountry = async (country, types = ['all']) => {
+    var localSelected = this.state.selectedCountries
+    // Country is not checked, check it and associated type checkboxes
+    if (!this.isSelectedCountry(country)) {
+      localSelected[country] = types
+    }
+    // Country is checked, uncheck it along with associated type checkboxes
+    else {
+      delete localSelected[country]
+    }
+    await this.setState({selectedCountries: localSelected})
+  }
+
+  // executed every time a type checkbox is clicked on
+  setSelectedType = async (country, type) => {
+    var localSelected = this.state.selectedCountries
+    // Type checkbox is unchecked
+    if (!this.isSelectedCountry(country)) {
+      localSelected[country] = [type]
+    }
+    else if (!this.isSelectedType(country, type)) {
+      localSelected[country].push(type)
+    }
+    // Type checkbox is checked, uncheck it and possibly uncheck country
+    else {
+      var filteredArr = localSelected[country].filter(function(e) { return e !== type })
+      localSelected[country] = filteredArr
+      // if no other types checked, uncheck country
+      if (filteredArr.length == 0) {
+        delete localSelected[country]
+      }
+    }
+    await this.setState({selectedCountries: localSelected})
+  }
+
+  clearSelected = () => {
+    this.setState({selectedCountries: {}})
+  }
+
+  // executed on modal close to save selected countries in persistence storage
+  saveSelected = async () => {
+    this.setState({isVisible: false})
+    await this.props.getHolidayData(this.state.selectedCountries, false)
+  }
+
+  // -----------------------------------------------------------------------
+
+  // For scrolling ---------------------------------------------------------
+  handleOnScroll = (event) => {
+    this.setState({
+      scrollOffset: event.nativeEvent.contentOffset.y,
+    })
+  }
+
+  handleScrollTo = (p) => {
+    if (this.scrollViewRef) {
+      this.scrollViewRef.scrollTo(p);
+    }
+  }
+  // -----------------------------------------------------------------------
+
+  // For rendering country list---------------------------------------------
+  // type list under countries where type of holiday selection is allowed
+  buildTypeList = (countryInfo) => {
+    types = ['religious', 'observance', 'national']
+    return types.map((type, i) => {
+      return (
+        <CheckBox key = {countryInfo.name.concat(type)}
+          checkedColor = {buttonColor}
+          containerStyle = {selStyles.typeCheckboxes}
+          title={type}
+          checked={this.isSelectedType(countryInfo.code, type)}
+          onPress = {() => {
+            this.setSelectedType(countryInfo.code, type)
+          }}
+          onIconPress = {() => {
+            this.setSelectedType(countryInfo.code, type)
+          }}
+        />
+      )
+    })
+  }
+  // the country list for user selection
+  buildCountryList = (countryInfo) => {
+    if (countryInfo.code == 'US' ||
+      countryInfo.code == 'GB' ||
+      countryInfo.code == 'CA' ||
+      countryInfo.code == 'AU') {
+      return (
+        <View key = {countryInfo.code}>
+          <CheckBox key = {countryInfo.name}
+            containerStyle = {selStyles.countryCheckboxes}
+            checkedColor = {buttonColor}
+            title={countryInfo.name}
+            checked={this.isSelectedCountry(countryInfo.code)}
+            onPress = {() => {
+              this.setSelectedCountry(countryInfo.code, ['religious', 'national', 'observance'])
+            }}
+            onIconPress = {() => {
+              this.setSelectedCountry(countryInfo.code, ['religious', 'national', 'observance'])
+
+            }}
+          />
+          {this.buildTypeList(countryInfo)}
+        </View>
+      )
+    }
+    else {
+      return (
+        <View key = {countryInfo.code}>
+          <CheckBox key = {countryInfo.name}
+            containerStyle = {selStyles.countryCheckboxes}
+            checkedColor = {buttonColor}
+            title={countryInfo.name}
+            checked={this.isSelectedCountry(countryInfo.code)}
+            onPress = {() => {
+              this.setSelectedCountry(countryInfo.code)
+            }}
+            onIconPress = {() => {
+              this.setSelectedCountry(countryInfo.code)
+            }}
+          />
+        </View>
+      )
+    }
+  }
   // -----------------------------------------------------------------------
 
   render() {
     return (
       <View>
         <View>
-          <TouchableOpacity
+          <TouchableOpacity style = {{paddingTop: 5}}
             onPress = {() => {
             this.openModal() }}>
-            <Ionicons name = "ios-menu" size = {44} color = {buttonColor} />
+            <Ionicons name = "ios-menu" size = {40} color = {buttonColor} />
           </TouchableOpacity>
         </View>
         <ModalWrapper style = {menuStyles.container}
-          containerStyle={{ flexDirection: 'row', justifyContent: 'flex-end' }}
-          onRequestClose={() => this.setState({ isVisible: false })}
+          onRequestClose={() => this.exitModal()}
+          shouldAnimateOnRequestClose={true}
           position="left"
           visible={this.state.isVisible}>
-          <View style = {menuStyles.menu}>
-            <Selection selectedCountries = {this.props.selectedCountries}
-              getHolidayData = {(selectedCountries, firstLaunch) => {
-            this.props.getHolidayData(selectedCountries, firstLaunch) }} />
-            <TouchableOpacity>
-              <Text>{"Set Notification Time"}</Text>
-            </TouchableOpacity>
+          <DateTimePicker
+              cancelTextStyle = {{color: buttonColor}}
+              confirmTextStyle = {{color: buttonColor}}
+              confirmTextIOS = 'Save'
+              titleIOS = 'Select a Time'
+              mode = "time"
+              date = {this.state.selectedTime}
+              isVisible = {this.state.isTimeVisible}
+              onConfirm = {(time) => {this.confirmTimePicker(time)}}
+              onCancel =  {this.cancelTimePicker}
+          />
+          <View style = {{height: '5%'}}>
+          <Text>{" "}</Text>
+          </View>
+          <View style = {[{height: '7%'}, menuStyles.notifButtonView]}>
+            <TouchableHighlight
+              underlayColor = 'lightgrey'
+              style={menuStyles.notifButton}
+              onPress= {() => {this.showTimePicker()}}>
+              <Text style = {menuStyles.notifText}> Set Notification Time </Text>
+            </TouchableHighlight>
+          </View>
+          <View style = {{height: '78%'}}>
+            <FlatList data = {countryOptions}
+              extraData = {this.state}
+              initialNumToRender={20}
+              renderItem = {(feedItem) => {
+                return(this.buildCountryList(feedItem.item)) }}
+              keyExtractor={(item, index) => index.toString()} />
+          </View>
+          <View style = {{height: '10%'}}>
+            <View style={selStyles.buttonsView}>
+              <View style={{flex:1}}>
+                <Button titleStyle = {selStyles.clearButtonTitle}
+                  buttonStyle={selStyles.clearButtonStyle}
+                  raised = {true}
+                  title="Clear"
+                  type = "outline"
+                  onPress= {() => {
+                    this.clearSelected()}} />
+              </View>
+              <Text>{" "}</Text>
+              <View style={{flex:1}}>
+                <Button buttonStyle={selStyles.buttonStyle}
+                  raised = {true}
+                  title="Save"
+                  onPress= {() => {
+                    this.saveSelected()}} />
+              </View>
+            </View>
           </View>
         </ModalWrapper>
       </View>
     );
   }
 }
+
 
 export default Menu;
