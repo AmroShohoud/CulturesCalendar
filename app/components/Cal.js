@@ -103,7 +103,7 @@ class Cal extends React.Component {
               this.showHolidayDetails(day) }}
           />
         </View>
-        <Modal style = {{flex: 1}}
+        <Modal style = {calStyles.modalContainer}
           isVisible={this.state.dayModalVisible}
           swipeDirection="down"
           onSwipeComplete={() =>
@@ -113,7 +113,7 @@ class Cal extends React.Component {
           scrollTo={this.handleScrollTo}
           scrollOffset={this.state.scrollOffset}
           scrollOffsetMax={1000}
-        >
+          propagateSwipe = {true}>
         <View>
           <ScrollView
             ref={ref => (this.scrollViewRef = ref)}

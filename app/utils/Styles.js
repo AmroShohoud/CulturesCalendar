@@ -48,6 +48,11 @@ export const calStyles = StyleSheet.create({
   background: {
     opacity: 0.8
   },
+  modalContainer: {
+    flex: 1,
+    marginTop: 70,
+    marginBottom: 70
+  },
   modalDate: {
     fontSize: 16,
     color: 'grey',
