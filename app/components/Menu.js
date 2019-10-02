@@ -43,7 +43,8 @@ class Menu extends React.Component {
   }
 
   openModal = async () => {
-    await this.setState({selectedCountries: this.props.selectedCountries})
+    // Set selectedCountries as a copy of the selectedCountries object from Main component
+    await this.setState({selectedCountries: JSON.parse(JSON.stringify(this.props.selectedCountries))})
     this.setVisible(true)
   }
 
@@ -161,7 +162,6 @@ class Menu extends React.Component {
 
   // executed on modal close to save selected countries in persistence storage
   saveSelected = async () => {
-    this.setState({isVisible: false})
     await this.props.getHolidayData(this.state.selectedCountries, false)
   }
 
