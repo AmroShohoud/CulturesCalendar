@@ -39,7 +39,6 @@ async function MakeAPICalls (countries, years, urlCache) {
           return response.json()
         })
         .then(myJson => {
-          console.log(myJson.response.holidays)
           return myJson.response.holidays
         }).catch(err => {
           console.log(err)
@@ -244,10 +243,12 @@ export async function GetHolidayData (selectedCountries, firstLaunch, urlCache) 
   }
   var d = new Date()
   var lastUpdated = {date: d}
-  return {allHolidaysArray: allHolidaysArray,
+  return {
+    allHolidaysArray: allHolidaysArray,
     localMarkers: localMarkers,
     localUrlCache: localUrlCache,
     selectedCountries: localCountries,
     lastUpdate: lastUpdated,
-    firstLaunch: {first: false}}
+    firstLaunch: {first: false}
+  }
 }

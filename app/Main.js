@@ -28,9 +28,11 @@ export default class Main extends React.Component {
       markers: {},
       selectedCountries: {},
       urlCache: {},
+      allHolidaysArray: [],
       loading: "false",
       errorModalVisible: false,
-      firstLaunch: null
+      firstLaunch: null,
+      notifTime: ''
     }
   }
 
@@ -48,7 +50,6 @@ export default class Main extends React.Component {
     }
     else {
       notifTime = notifTime.time
-      console.log(notifTime);
     }
     var storedCountries = await _retrieveData('selectedCountries')
     var firstLaunch = await _retrieveData('firstLaunch')
@@ -57,11 +58,8 @@ export default class Main extends React.Component {
       storedUrlCache = {}
     }
 
-    this.setState({firstLaunch: firstLaunch})
-    this.setState({selectedCountries: storedCountries})
-
     // sets all our states up
-    this.getHolidayData(storedCountries, firstLaunch, notifTime, storedUrlCache)
+    this.getHolidaysAndStoreData(storedCountries, firstLaunch, notifTime, storedUrlCache)
 
     // Check if background task already registered
     var isRegistered = await TaskManager.isTaskRegisteredAsync(
@@ -78,7 +76,7 @@ export default class Main extends React.Component {
     var tasks = await TaskManager.getRegisteredTasksAsync()
   }
 
-  getHolidayData = async (selectedCountries, firstLaunch, notifTime, urlCache = this.state.urlCache) => {
+  getHolidaysAndStoreData = async (selectedCountries = selectedCountries, firstLaunch = this.state.firstLaunch, notifTime = this.state.notifTime, urlCache = this.state.urlCache) => {
     this.setState({loading: "true"})
     // Run our main GetHolidayData function
     var results = await GetHolidayData(selectedCountries, firstLaunch, urlCache)
@@ -93,8 +91,11 @@ export default class Main extends React.Component {
       // Set state variables
       await this.setState({markers: results.localMarkers})
       await this.setState({selectedCountries: results.selectedCountries})
+      this.setState({allHolidaysArray: results.allHolidaysArray})
       this.setState({urlCache: results.localUrlCache})
       this.setState({loading: "false"})
+      this.setState({notifTime: notifTime})
+      this.setState({firstLaunch: firstLaunch})
 
       // Store data in async storage
       _storeData('urlCache', JSON.stringify(results.localUrlCache))
@@ -108,11 +109,20 @@ export default class Main extends React.Component {
     }
   }
 
+  // Child methods
+  setNotifTime = async (notifTimeParam) => {
+    this.setState({notifTime: notifTimeParam})
+  }
+
   // Error modal functions -------------------------------------------------------------
 
   closeErrorModal = (tryAgain) => {
     if (tryAgain) {
-      this.getHolidayData(this.selectedCountries, this.firstLaunch)
+      this.getHolidaysAndStoreData(
+        this.state.selectedCountries,
+        this.state.firstLaunch,
+        this.state.notifications,
+        this.state.urlCache)
     }
     this.setState({errorModalVisible: false})
   }
@@ -149,9 +159,14 @@ export default class Main extends React.Component {
       <Container>
         <Header style={[mainStyles.colors, {justifyContent: 'space-between'}]}>
           <View>
-            <Menu selectedCountries = {this.state.selectedCountries}
-              getHolidayData = {(selectedCountries, firstLaunch) => {
-              this.getHolidayData(selectedCountries, firstLaunch) }} />
+            <Menu
+              selectedCountries = {this.state.selectedCountries}
+              allHolidaysArray = {this.state.allHolidaysArray}
+              notifTime = {this.state.notifTime}
+              getHolidaysAndStoreData = {(selectedCountries, firstLaunch, notifTime, urlCache) => {
+                this.getHolidaysAndStoreData(selectedCountries, firstLaunch, notifTime, urlCache) }}
+              setNotifTime = {(notifTime) => {
+                this.setNotifTime(notifTime) }}/>
           </View>
           <View style={{justifyContent: 'center'}}>
             <ActivityIndicator size="small" animating = {this.state.loading}/>

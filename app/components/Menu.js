@@ -15,7 +15,7 @@ import {Ionicons} from '@expo/vector-icons'
 import ModalWrapper from 'react-native-modal-wrapper'
 import DateTimePicker from "react-native-modal-datetime-picker"
 
-import {_storeData, _retrieveData, _deleteData} from '../utils/AsyncData'
+import {_storeData, _retrieveData} from '../utils/AsyncData'
 import {countryOptions} from '../utils/Options'
 import {menuStyles, selStyles, buttonColor} from '../utils/Styles'
 import ReactMultiSelectCheckboxes from 'react-multiselect-checkboxes'
@@ -29,7 +29,8 @@ class Menu extends React.Component {
       isVisible: false,
       isTimeVisible: false,
       selectedTime: null,
-      selectedCountries: {}
+      selectedCountries: {},
+      allHolidaysArray: []
     }
   }
 
@@ -57,12 +58,12 @@ class Menu extends React.Component {
   // TimePicker specific functions------------------------------------------
 
   getSavedTime = async () => {
-    var notifTime = await _retrieveData('notifTime')
+    var notifTime = this.props.notifTime
     if (notifTime == null) {
       notifTime = 'T00:00'
     }
     else {
-      notifTime = notifTime.time
+      notifTime = notifTime
     }
     var dateUTC = dateToUTC('2018-12-31', notifTime)
     this.setState({selectedTime: dateUTC})
@@ -78,15 +79,8 @@ class Menu extends React.Component {
   }
 
   scheduleNotifications = async (timeStr) => {
-    var firstLaunch = await _retrieveData('firstLaunch')
-    var urlCache = await _retrieveData('urlCache')
-    if (urlCache == null) {
-      urlCache = {}
-    }
-    var results = await GetHolidayData(this.props.selectedCountries, firstLaunch, urlCache)
-
     // Schedule our next 50 notifications
-    ScheduleAllNotifications(results.allHolidaysArray, timeStr)
+    ScheduleAllNotifications(this.props.allHolidaysArray, timeStr)
 
   }
 
@@ -101,6 +95,7 @@ class Menu extends React.Component {
     timeStr += minutes
     _storeData('notifTime', JSON.stringify({'time':timeStr}))
     this.scheduleNotifications(timeStr)
+    this.props.setNotifTime(timeStr)
     this.setState({isTimeVisible: false})
   }
 
@@ -160,9 +155,8 @@ class Menu extends React.Component {
     this.setState({selectedCountries: {}})
   }
 
-  // executed on modal close to save selected countries in persistence storage
   saveSelected = async () => {
-    await this.props.getHolidayData(this.state.selectedCountries, false)
+    await this.props.getHolidaysAndStoreData(this.state.selectedCountries)
   }
 
   // -----------------------------------------------------------------------
