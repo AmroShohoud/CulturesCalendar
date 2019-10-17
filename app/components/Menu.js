@@ -28,9 +28,7 @@ class Menu extends React.Component {
     this.state = {
       isVisible: false,
       isTimeVisible: false,
-      selectedTime: null,
-      selectedCountries: {},
-      allHolidaysArray: []
+      selectedCountries: {}
     }
   }
 
@@ -57,7 +55,7 @@ class Menu extends React.Component {
 
   // TimePicker specific functions------------------------------------------
 
-  getSavedTime = async () => {
+  getSavedTime = () => {
     var notifTime = this.props.notifTime
     if (notifTime == null) {
       notifTime = 'T00:00'
@@ -66,7 +64,7 @@ class Menu extends React.Component {
       notifTime = notifTime
     }
     var dateUTC = dateToUTC('2018-12-31', notifTime)
-    this.setState({selectedTime: dateUTC})
+    return dateUTC
   }
 
   showTimePicker = async () => {
@@ -80,8 +78,7 @@ class Menu extends React.Component {
 
   scheduleNotifications = async (timeStr) => {
     // Schedule our next 50 notifications
-    ScheduleAllNotifications(this.props.allHolidaysArray, timeStr)
-
+    this.props.scheduleNotifications(timeStr)
   }
 
   // Store the time in AsyncStorage, schedule all notifications with new time, and close the modal
@@ -156,6 +153,8 @@ class Menu extends React.Component {
   }
 
   saveSelected = async () => {
+    this.exitModal()
+    await this.props.setSelectedCountriesTemp(this.state.selectedCountries)
     await this.props.getHolidaysAndStoreData(this.state.selectedCountries)
   }
 
@@ -263,7 +262,7 @@ class Menu extends React.Component {
               confirmTextIOS = 'Save'
               titleIOS = 'Select a Time'
               mode = "time"
-              date = {this.state.selectedTime}
+              date = {this.getSavedTime()}
               isVisible = {this.state.isTimeVisible}
               onConfirm = {(time) => {this.confirmTimePicker(time)}}
               onCancel =  {this.cancelTimePicker}

@@ -32,7 +32,8 @@ export default class Main extends React.Component {
       loading: "false",
       errorModalVisible: false,
       firstLaunch: null,
-      notifTime: ''
+      notifTime: '',
+      selectedCountriesTemp: null
     }
   }
 
@@ -59,7 +60,10 @@ export default class Main extends React.Component {
     }
 
     // sets all our states up
-    this.getHolidaysAndStoreData(storedCountries, firstLaunch, notifTime, storedUrlCache)
+    returnValue = await this.getHolidaysAndStoreData(storedCountries, firstLaunch, notifTime, storedUrlCache)
+    if (returnValue == "error") {
+      this.showErrorModal()
+    }
 
     // Check if background task already registered
     var isRegistered = await TaskManager.isTaskRegisteredAsync(
@@ -83,9 +87,7 @@ export default class Main extends React.Component {
 
     // Check if we received an error when accessing internet API
     if (results == "error") {
-      await this.setState({errorModalVisible: true})
-      console.log(this.state.errorModalVisible)
-      this.setState({loading: "false"})
+      return "error"
     }
     else {
       // Set state variables
@@ -93,7 +95,6 @@ export default class Main extends React.Component {
       await this.setState({selectedCountries: results.selectedCountries})
       this.setState({allHolidaysArray: results.allHolidaysArray})
       this.setState({urlCache: results.localUrlCache})
-      this.setState({loading: "false"})
       this.setState({notifTime: notifTime})
       this.setState({firstLaunch: firstLaunch})
 
@@ -106,23 +107,50 @@ export default class Main extends React.Component {
       // schedule notifications for next 50 holidays
       ScheduleAllNotifications(results.allHolidaysArray, notifTime)
       _storeData('notifTime', JSON.stringify({'time':notifTime}))
+      this.setState({loading: "false"})
     }
+    return "success"
   }
 
-  // Child methods
+  // Child methods ----------------------------------------------------------------------
   setNotifTime = async (notifTimeParam) => {
     this.setState({notifTime: notifTimeParam})
   }
 
+  setSelectedCountriesTemp = (selectedCountries) => {
+    this.setState({selectedCountriesTemp: selectedCountries})
+  }
+
+  childGetHolidaysAndStoreData = async (selectedCountries) => {
+    returnValue = await this.getHolidaysAndStoreData(selectedCountries)
+    if (returnValue == "error") {
+      this.showErrorModal()
+    }
+  }
+
+  childScheduleNotifications = async (timeString) => {
+    ScheduleAllNotifications(this.state.allHolidaysArray, timeString)
+  }
+
   // Error modal functions -------------------------------------------------------------
 
-  closeErrorModal = (tryAgain) => {
+  showErrorModal = () => {
+    setTimeout(() => {
+      this.setState({errorModalVisible: true})
+      this.setState({loading: "false"})
+    }, 1000)
+  }
+
+  closeErrorModal = async (tryAgain, selectedCountriesParam)  => {
     if (tryAgain) {
-      this.getHolidaysAndStoreData(
-        this.state.selectedCountries,
+      returnValue = await this.getHolidaysAndStoreData(
+        selectedCountriesParam,
         this.state.firstLaunch,
         this.state.notifications,
         this.state.urlCache)
+      if (returnValue == "error") {
+        this.showErrorModal()
+      }
     }
     this.setState({errorModalVisible: false})
   }
@@ -146,7 +174,7 @@ export default class Main extends React.Component {
             buttonStyle = {mainStyles.errorButtonStyle}
             title = "Try Again"
             onPress = {() => {
-              this.closeErrorModal(true)}} />
+              this.closeErrorModal(true, this.state.selectedCountriesTemp)}} />
         </View>
       </Modal>
     )
@@ -164,9 +192,13 @@ export default class Main extends React.Component {
               allHolidaysArray = {this.state.allHolidaysArray}
               notifTime = {this.state.notifTime}
               getHolidaysAndStoreData = {(selectedCountries, firstLaunch, notifTime, urlCache) => {
-                this.getHolidaysAndStoreData(selectedCountries, firstLaunch, notifTime, urlCache) }}
+                this.childGetHolidaysAndStoreData(selectedCountries, firstLaunch, notifTime, urlCache) }}
               setNotifTime = {(notifTime) => {
-                this.setNotifTime(notifTime) }}/>
+                this.setNotifTime(notifTime) }}
+              setSelectedCountriesTemp = {(selectedCountries) => {
+                this.setSelectedCountriesTemp(selectedCountries) }}
+              scheduleNotifications = {(notifTime) => {
+                this.childScheduleNotifications(notifTime) }}/>
           </View>
           <View style={{justifyContent: 'center'}}>
             <ActivityIndicator size="small" animating = {this.state.loading}/>
