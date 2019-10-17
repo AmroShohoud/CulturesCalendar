@@ -141,10 +141,10 @@ export default class Main extends React.Component {
     }, 1000)
   }
 
-  closeErrorModal = async (tryAgain, selectedCountriesParam)  => {
+  closeErrorModal = async (tryAgain)  => {
     if (tryAgain) {
       returnValue = await this.getHolidaysAndStoreData(
-        selectedCountriesParam,
+        this.state.selectedCountriesTemp,
         this.state.firstLaunch,
         this.state.notifications,
         this.state.urlCache)
@@ -174,7 +174,7 @@ export default class Main extends React.Component {
             buttonStyle = {mainStyles.errorButtonStyle}
             title = "Try Again"
             onPress = {() => {
-              this.closeErrorModal(true, this.state.selectedCountriesTemp)}} />
+              this.closeErrorModal(true)}} />
         </View>
       </Modal>
     )
