@@ -148,8 +148,8 @@ class Menu extends React.Component {
     await this.setState({selectedCountries: localSelected})
   }
 
-  clearSelected = () => {
-    this.setState({selectedCountries: {}})
+  clearSelected = async () => {
+    await this.setState({selectedCountries: {}})
   }
 
   saveSelected = async () => {

@@ -19,45 +19,36 @@ function getYears () {
 }
 
 // checks if holidays for a url are cached, if not makes API call
-async function MakeAPICalls (countries, years, urlCache) {
+export async function MakeAPICall (country, url, urlCache) {
   var holidays = []
-  var allHolidays = []
-  var localCache = {}
-  var urls = CreateWebAddresses(countries, years)
-  for (var i = 0; i < urls.length; i++) {
-    var url = urls[i].url
-    var country = urls[i].country
-    if (url in urlCache) {
-      holidays = urlCache[url]
-      allHolidays = allHolidays.concat({countryLong: countryCodeOptions[country], code: country,
-        holidays: holidays})
-      localCache[url] = holidays
-    }
-    else {
-      holidays = await fetch(url)
-        .then(response => {
-          return response.json()
-        })
-        .then(myJson => {
-          return myJson.response.holidays
-        }).catch(err => {
-          console.log(err)
-          return "error" //TODO check this and add modal that shows error message
-        })
-      if (holidays == "error") {
-        return "error"
-      }
-      localCache[url] = holidays
-      allHolidays = allHolidays.concat({countryLong: countryCodeOptions[country], code: country,
-        holidays: holidays})
-    }
+  if (url in urlCache) {
+    holidays = urlCache[url]
   }
-  return({urlCache: localCache, allHolidays: allHolidays})
+  else {
+    holidays = await fetch(url)
+      .then(response => {
+        return response.json()
+      })
+      .then(myJson => {
+        return myJson.response.holidays
+      }).catch(err => {
+        console.log(err)
+        return "error"
+      })
+    if (holidays == "error") {
+      return "error"
+    }
+    urlCache[url] = holidays
+  }
+
+  var holidaysObj = {countryLong: countryCodeOptions[country], code: country,
+          holidays: holidays}
+  return({urlCache: urlCache, holidaysObj: holidaysObj})
 }
 
-// build url strings based on user-defined parameters
-//parameters will be defined by user to narrow down holiday selection
-function CreateWebAddresses (countries, years) {
+// build url strings based on countries and years
+export function CreateWebAddresses (countries) {
+  var years = getYears()
   var urls = []
   var apiParam = "api_key=" + API_KEY
   var localCountries = Object.keys(countries)
@@ -83,7 +74,7 @@ function CreateWebAddresses (countries, years) {
 
 // Put holidays into format to pass into the Calendar component for marking dates of holidays
 // and set them as notifications
-function CreateDateMarkers (holidayArray) {
+export function CreateDateMarkers (holidayArray) {
 
   localMarkers = {}
   // Format of objects to be passed into Calendar component's 'markedDates'
@@ -136,7 +127,7 @@ function ScheduleNotification (country, holiday, desc, date) {
 }
 // -------------------------------------------------------------------------
 
-// exported functions ------------------------------------------------------
+// exported functions for app usage ----------------------------------------
 
 // alertIfRemoteNotificationsDisabledAsync = async() => {
 //   const { status } = await Permissions.getAsync(Permissions.NOTIFICATIONS);
@@ -161,9 +152,13 @@ export function dateToUTC(date, time) {
 // Put holidays into format to pass into the Calendar component for marking dates of holidays
 // and set them as notifications
 export async function ScheduleAllNotifications (holidayArray, time) {
-// Cancel all previously scheduled notifications
+  // Cancel all previously scheduled notifications
   // (because we will reschedule the notifications the user has chosen)
   await Notifications.cancelAllScheduledNotificationsAsync()
+
+  if (holidayArray.length <= 0) {
+    return
+  }
 
   // Create array of holiday objects sorted by date
   // We will pick the first 50 objects in this array
@@ -194,12 +189,52 @@ export async function ScheduleAllNotifications (holidayArray, time) {
   sortedHolidayArray.sort(date_sort_asc)
 
   // schedule holiday notifications
-  // TODO offset by local time of country that holiday celebrated in
   var maxK = sortedHolidayArray.length < 50 ? sortedHolidayArray.length : 50
   for (var k = 0; k < maxK; k++) {
     var holiday = sortedHolidayArray[k]
     ScheduleNotification(holiday.countryLong, holiday.name, holiday.description, holiday.dateUTC)
   }
+}
+
+// -------------------------------------------------------------------------
+
+// exported functions for background updates -------------------------------
+
+// checks if holidays for a url are cached, if not makes API call
+async function MakeAPICalls (countries, years, urlCache) {
+  var holidays = []
+  var allHolidays = []
+  var localCache = {}
+  var urls = CreateWebAddresses(countries, years)
+  for (var i = 0; i < urls.length; i++) {
+    var url = urls[i].url
+    var country = urls[i].country
+    if (url in urlCache) {
+      holidays = urlCache[url]
+      allHolidays = allHolidays.concat({countryLong: countryCodeOptions[country], code: country,
+        holidays: holidays})
+      localCache[url] = holidays
+    }
+    else {
+      holidays = await fetch(url)
+        .then(response => {
+          return response.json()
+        })
+        .then(myJson => {
+          return myJson.response.holidays
+        }).catch(err => {
+          console.log(err)
+          return "error" //TODO check this and add modal that shows error message
+        })
+      if (holidays == "error") {
+        return "error"
+      }
+      localCache[url] = holidays
+      allHolidays = allHolidays.concat({countryLong: countryCodeOptions[country], code: country,
+        holidays: holidays})
+    }
+  }
+  return({urlCache: localCache, allHolidays: allHolidays})
 }
 
 // this method hooks into all the processing that goes into building our

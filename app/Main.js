@@ -16,7 +16,7 @@ import Cal from './components/Cal'
 import {_storeData, _retrieveData, _deleteData} from './utils/AsyncData'
 import {mainStyles} from './utils/Styles'
 
-import {HasPermissions, GetHolidayData, ScheduleAllNotifications} from './utils/DataFunctions'
+import {HasPermissions, ScheduleAllNotifications, CreateWebAddresses, CreateDateMarkers, MakeAPICall} from './utils/DataFunctions'
 
 const UPDATE_HOLIDAYS_TASK_NAME = 'updateHolidays'
 
@@ -29,12 +29,11 @@ export default class Main extends React.Component {
       selectedCountries: {},
       urlCache: {},
       allHolidaysArray: [],
-      loading: "false",
+      loading: false,
       errorModalVisible: false,
       firstLaunch: null,
       notifTime: '',
-      selectedCountriesTemp: null
-    }
+      selectedCountriesTemp: null    }
   }
 
   // on mount pull our holiday data
@@ -81,34 +80,68 @@ export default class Main extends React.Component {
   }
 
   getHolidaysAndStoreData = async (selectedCountries = selectedCountries, firstLaunch = this.state.firstLaunch, notifTime = this.state.notifTime, urlCache = this.state.urlCache) => {
-    this.setState({loading: "true"})
-    // Run our main GetHolidayData function
-    var results = await GetHolidayData(selectedCountries, firstLaunch, urlCache)
+    this.setState({loading: true})
 
-    // Check if we received an error when accessing internet API
-    if (results == "error") {
-      return "error"
+    // Set these empty values to avoid errors during rendering empty calendar
+    var localMarkers = {}
+    var allHolidaysArray = []
+
+    // first time app is being launched
+    // (want to have default holidays so user can see functionality)
+    if (firstLaunch == null) {
+      // set up our defaults
+      selectedCountries = {'US': ['religious'], 'EG': ['all']}
+    }
+
+    if (selectedCountries == null) {
+      this.setState({markers: {}})
+      this.setState({selectedCountries: {}})
+      this.setState({allHolidaysArray: []})
+      this.setState({urlCache: {}})
+      this.setState({firstLaunch: false})
+      _storeData('urlCache', JSON.stringify(urlCache))
+      _storeData('selectedCountries', JSON.stringify(selectedCountries))
+      _storeData('firstLaunch', JSON.stringify({firstLaunch: false}))
     }
     else {
+      // get data and create markers for calendar object
+
+      var urls = CreateWebAddresses(selectedCountries)
+      var allHolidays = []
+      for (i = 0; i < urls.length; i++) {
+        var result = await MakeAPICall(urls[i].country, urls[i].url, urlCache)
+        if (result == "error") {
+          return "error"
+        }
+        urlCache = result.urlCache
+        allHolidaysArray.push(result.holidaysObj)
+        localMarkers = CreateDateMarkers(allHolidaysArray)
+        this.setState({markers: localMarkers})
+      }
+
       // Set state variables
-      await this.setState({markers: results.localMarkers})
-      await this.setState({selectedCountries: results.selectedCountries})
-      this.setState({allHolidaysArray: results.allHolidaysArray})
-      this.setState({urlCache: results.localUrlCache})
-      this.setState({notifTime: notifTime})
-      this.setState({firstLaunch: firstLaunch})
+      this.setState({selectedCountries: selectedCountries})
+      this.setState({allHolidaysArray: allHolidaysArray})
+      this.setState({urlCache: urlCache})
+      this.setState({firstLaunch: false})
 
       // Store data in async storage
-      _storeData('urlCache', JSON.stringify(results.localUrlCache))
-      _storeData('selectedCountries', JSON.stringify(results.selectedCountries))
-      _storeData('lastUpdate', JSON.stringify(results.lastUpdate))
-      _storeData('firstLaunch', JSON.stringify(results.firstLaunch))
-
-      // schedule notifications for next 50 holidays
-      ScheduleAllNotifications(results.allHolidaysArray, notifTime)
-      _storeData('notifTime', JSON.stringify({'time':notifTime}))
-      this.setState({loading: "false"})
+      _storeData('urlCache', JSON.stringify(urlCache))
+      _storeData('selectedCountries', JSON.stringify(selectedCountries))
+      _storeData('firstLaunch', JSON.stringify({firstLaunch: false}))
     }
+
+    // schedule notifications for next 50 holidays
+    ScheduleAllNotifications([], notifTime)
+    _storeData('notifTime', JSON.stringify({'time':notifTime}))
+    this.setState({notifTime: notifTime})
+
+    var d = new Date()
+    var lastUpdated = {date: d}
+    _storeData('lastUpdate', JSON.stringify(lastUpdated))
+
+    this.setState({loading: false})
+
     return "success"
   }
 
