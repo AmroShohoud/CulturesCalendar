@@ -93,7 +93,7 @@ export default class Main extends React.Component {
       selectedCountries = {'US': ['religious'], 'EG': ['all']}
     }
 
-    if (selectedCountries == null) {
+    if (selectedCountries == null || Object.keys(selectedCountries).length == 0) {
       this.setState({markers: {}})
       this.setState({selectedCountries: {}})
       this.setState({allHolidaysArray: []})
