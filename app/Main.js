@@ -5,7 +5,7 @@ import {
   View
   } from 'react-native'
 import {Container, Header, Content, Footer, Title} from 'native-base'
-import {Button} from 'react-native-elements'
+import {Button, Icon} from 'react-native-elements'
 import Modal from 'react-native-modal'
 import { Ionicons } from '@expo/vector-icons'
 import * as BackgroundFetch from 'expo-background-fetch'
@@ -14,7 +14,7 @@ import * as TaskManager from 'expo-task-manager'
 import Menu from './components/Menu'
 import Cal from './components/Cal'
 import {_storeData, _retrieveData, _deleteData} from './utils/AsyncData'
-import {mainStyles} from './utils/Styles'
+import {mainStyles, buttonColor} from './utils/Styles'
 
 import {HasPermissions, ScheduleAllNotifications, CreateWebAddresses, CreateDateMarkers, MakeAPICall} from './utils/DataFunctions'
 
@@ -33,7 +33,11 @@ export default class Main extends React.Component {
       errorModalVisible: false,
       firstLaunch: null,
       notifTime: '',
-      selectedCountriesTemp: null    }
+      selectedCountriesTemp: null,
+      shouldContinueGettingHolidays: true,
+      closeIconColor: '#FAFAD2',
+      menuIconColor: buttonColor
+    }
   }
 
   // on mount pull our holiday data
@@ -80,7 +84,12 @@ export default class Main extends React.Component {
   }
 
   getHolidaysAndStoreData = async (selectedCountries = selectedCountries, firstLaunch = this.state.firstLaunch, notifTime = this.state.notifTime, urlCache = this.state.urlCache) => {
-    this.setState({loading: true})
+    this.startLoading()
+    this.setState({menuIconColor: '#B2E0B2'})
+
+    // These are used to allow user to cancel fetching new holidays
+    await this.setState({shouldContinueGettingHolidays: true})
+    var finishedSelectedCountries = {}
 
     // Set these empty values to avoid errors during rendering empty calendar
     var localMarkers = {}
@@ -105,29 +114,36 @@ export default class Main extends React.Component {
     }
     else {
       // get data and create markers for calendar object
-
       var urls = CreateWebAddresses(selectedCountries)
       var allHolidays = []
       for (i = 0; i < urls.length; i++) {
-        var result = await MakeAPICall(urls[i].country, urls[i].url, urlCache)
-        if (result == "error") {
-          return "error"
+        if (this.state.shouldContinueGettingHolidays) {
+          var result = await MakeAPICall(urls[i].country, urls[i].url, urlCache)
+          if (result == "error") {
+            return "error"
+          }
+          urlCache = result.urlCache
+          allHolidaysArray.push(result.holidaysObj)
+          localMarkers = CreateDateMarkers(allHolidaysArray)
+          finishedSelectedCountries[urls[i].country] = selectedCountries[urls[i].country]
+          this.setState({markers: localMarkers})
         }
-        urlCache = result.urlCache
-        allHolidaysArray.push(result.holidaysObj)
-        localMarkers = CreateDateMarkers(allHolidaysArray)
-        this.setState({markers: localMarkers})
+        else {
+          this.setState({markers: {}})
+          finishedSelectedCountries = {}
+          allHolidaysArray = []
+        }
       }
 
       // Set state variables
-      this.setState({selectedCountries: selectedCountries})
+      this.setState({selectedCountries: finishedSelectedCountries})
       this.setState({allHolidaysArray: allHolidaysArray})
       this.setState({urlCache: urlCache})
       this.setState({firstLaunch: false})
 
       // Store data in async storage
       _storeData('urlCache', JSON.stringify(urlCache))
-      _storeData('selectedCountries', JSON.stringify(selectedCountries))
+      _storeData('selectedCountries', JSON.stringify(finishedSelectedCountries))
       _storeData('firstLaunch', JSON.stringify({firstLaunch: false}))
     }
 
@@ -140,11 +156,24 @@ export default class Main extends React.Component {
     var lastUpdated = {date: d}
     _storeData('lastUpdate', JSON.stringify(lastUpdated))
 
-    this.setState({loading: false})
-
+    this.setState({menuIconColor: buttonColor})
+    this.stopLoading()
     return "success"
   }
 
+  startLoading = () => {
+    this.setState({loading: true})
+    this.setState({closeIconColor: 'red'})
+  }
+
+  stopLoading = () => {
+    this.setState({loading: false})
+    this.setState({closeIconColor: '#FAFAD2'})
+  }
+
+  cancelGetHolidays = () => {
+    this.setState({shouldContinueGettingHolidays: false})
+  }
   // Child methods ----------------------------------------------------------------------
   setNotifTime = async (notifTimeParam) => {
     this.setState({notifTime: notifTimeParam})
@@ -152,6 +181,10 @@ export default class Main extends React.Component {
 
   setSelectedCountriesTemp = (selectedCountries) => {
     this.setState({selectedCountriesTemp: selectedCountries})
+  }
+
+  setShouldContinueGettingHolidays = async (shouldContinue) => {
+    this.setState({shouldContinueGettingHolidays: shouldContinue})
   }
 
   childGetHolidaysAndStoreData = async (selectedCountries) => {
@@ -170,7 +203,7 @@ export default class Main extends React.Component {
   showErrorModal = () => {
     setTimeout(() => {
       this.setState({errorModalVisible: true})
-      this.setState({loading: "false"})
+      this.stopLoading()
     }, 1000)
   }
 
@@ -224,6 +257,8 @@ export default class Main extends React.Component {
               selectedCountries = {this.state.selectedCountries}
               allHolidaysArray = {this.state.allHolidaysArray}
               notifTime = {this.state.notifTime}
+              loading = {this.state.loading}
+              menuIconColor = {this.state.menuIconColor}
               getHolidaysAndStoreData = {(selectedCountries, firstLaunch, notifTime, urlCache) => {
                 this.childGetHolidaysAndStoreData(selectedCountries, firstLaunch, notifTime, urlCache) }}
               setNotifTime = {(notifTime) => {
@@ -233,8 +268,15 @@ export default class Main extends React.Component {
               scheduleNotifications = {(notifTime) => {
                 this.childScheduleNotifications(notifTime) }}/>
           </View>
-          <View style={{justifyContent: 'center'}}>
-            <ActivityIndicator size="small" animating = {this.state.loading}/>
+          <View style={{justifyContent: 'center', flexDirection: 'row'}}>
+            <View style = {{justifyContent: 'center'}} >
+              <ActivityIndicator size="small" animating = {this.state.loading}/>
+            </View>
+            <View style = {{justifyContent: 'center'}}>
+              <Icon name = 'cancel' color = {this.state.closeIconColor}
+                underlayColor = {'#FFCCCB'}
+                onPress={() => this.cancelGetHolidays()} />
+            </View>
           </View>
         </Header>
         {this.renderErrorModal()}

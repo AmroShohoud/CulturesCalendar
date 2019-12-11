@@ -28,7 +28,7 @@ class Menu extends React.Component {
     this.state = {
       isVisible: false,
       isTimeVisible: false,
-      selectedCountries: {}
+      selectedCountries: {},
     }
   }
 
@@ -177,7 +177,7 @@ class Menu extends React.Component {
   // For rendering country list---------------------------------------------
   // type list under countries where type of holiday selection is allowed
   buildTypeList = (countryInfo) => {
-    types = ['religious', 'observance', 'national']
+    var types = ['religious', 'observance', 'national']
     return types.map((type, i) => {
       return (
         <CheckBox key = {countryInfo.name.concat(type)}
@@ -246,9 +246,10 @@ class Menu extends React.Component {
       <View>
         <View>
           <TouchableOpacity style = {{paddingTop: 5}}
+            disabled = {this.props.loading}
             onPress = {() => {
             this.openModal() }}>
-            <Ionicons name = "ios-menu" size = {40} color = {buttonColor} />
+            <Ionicons name = "ios-menu" size = {40} color = {this.props.menuIconColor} />
           </TouchableOpacity>
         </View>
         <ModalWrapper style = {menuStyles.container}
