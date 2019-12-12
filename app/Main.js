@@ -18,6 +18,8 @@ import {mainStyles, buttonColor} from './utils/Styles'
 
 import {HasPermissions, ScheduleAllNotifications, CreateWebAddresses, CreateDateMarkers, MakeAPICall, GetHolidayData} from './utils/DataFunctions'
 
+import {AdMobBanner} from 'expo-ads-admob';
+
 const UPDATE_HOLIDAYS_TASK_NAME = 'updateHolidays'
 
 // Main is the container for our app pages
@@ -290,7 +292,11 @@ export default class Main extends React.Component {
             markers={this.state.markers} />
         </View>
         <Footer style={mainStyles.colors}>
-          <Title></Title>
+        <AdMobBanner
+          bannerSize="banner"
+          adUnitID="ca-app-pub-7233798900885543/6900160470" // Test ID, Replace with your-admob-unit-id
+          servePersonalizedAds = {true}
+          onDidFailToReceiveAdWithError={this.bannerError} />
         </Footer>
       </Container>
     );

@@ -31,6 +31,9 @@
           "location",
           "fetch"
         ]
+      },
+      "config": {
+        "googleMobileAdsAppId": "ca-app-pub-7233798900885543~5999455421"
       }
     },
     "android": {
