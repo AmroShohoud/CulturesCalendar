@@ -44,6 +44,7 @@ class Cal extends React.Component {
     return this.state.curHolidays.dots.map((holidayInfo, i) => {
       return (
         <View style = {calStyles.modalHoliday} key = {i+holidayInfo.name+holidayInfo.countryLong}>
+          <Text></Text>
           <Text style = {calStyles.modalHolidayName}>{holidayInfo.name}</Text>
           <Text style = {{color: holidayInfo.color}}>{holidayInfo.countryLong}</Text>
           <Text>{holidayInfo.desc}</Text>

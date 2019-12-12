@@ -59,7 +59,9 @@ export const calStyles = StyleSheet.create({
     textAlign: 'center'
   },
   modalHoliday: {
-    textAlign: 'left'
+    textAlign: 'left',
+    borderTopColor: 'lightgrey',
+    borderTopWidth: 1.0,
   },
   modalHolidayName: {
     fontSize: 16
@@ -155,9 +157,9 @@ export const menuStyles = StyleSheet.create({
     },
     notifButtonView: {
       borderTopColor: 'lightgrey',
-      borderTopWidth: 0.5,
+      borderTopWidth: 1.0,
       borderBottomColor: 'lightgrey',
-      borderBottomWidth: 0.5,
+      borderBottomWidth: 1.0,
       alignItems: 'flex-start'
     },
     notifText: {
