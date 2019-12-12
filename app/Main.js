@@ -16,7 +16,7 @@ import Cal from './components/Cal'
 import {_storeData, _retrieveData, _deleteData} from './utils/AsyncData'
 import {mainStyles, buttonColor} from './utils/Styles'
 
-import {HasPermissions, ScheduleAllNotifications, CreateWebAddresses, CreateDateMarkers, MakeAPICall} from './utils/DataFunctions'
+import {HasPermissions, ScheduleAllNotifications, CreateWebAddresses, CreateDateMarkers, MakeAPICall, GetHolidayData} from './utils/DataFunctions'
 
 const UPDATE_HOLIDAYS_TASK_NAME = 'updateHolidays'
 
@@ -45,7 +45,7 @@ export default class Main extends React.Component {
     // First check if we have permissions for notifications (prompt user if not)
     await HasPermissions()
 
-    // see if data is already stored on device
+    // see if notification data is already stored on device
     var notifTime = await _retrieveData('notifTime')
     // if notification time is null (should only happen on first launch)
     // set the notification time to 12 AM UTC time
@@ -61,12 +61,21 @@ export default class Main extends React.Component {
     if (storedUrlCache == null) {
       storedUrlCache = {}
     }
+    // first time app is launched
+    if (firstLaunch == null) {
+      // set updated date to today
+      var d = new Date()
+      var lastUpdated = {date: d}
+      _storeData('lastUpdate', JSON.stringify(lastUpdated))
+    }
 
     // sets all our states up
     returnValue = await this.getHolidaysAndStoreData(storedCountries, firstLaunch, notifTime, storedUrlCache)
     if (returnValue == "error") {
       this.showErrorModal()
     }
+    // For testing
+    //TaskManager.unregisterAllTasksAsync()
 
     // Check if background task already registered
     var isRegistered = await TaskManager.isTaskRegisteredAsync(
@@ -78,9 +87,9 @@ export default class Main extends React.Component {
       //var seconds = 10 // For testing
       await BackgroundFetch.registerTaskAsync(UPDATE_HOLIDAYS_TASK_NAME, {minimumInterval: seconds}) //TODO change interval
     }
-
+    await BackgroundFetch.setMinimumIntervalAsync(seconds);
     // TODO delete these lines after done testing
-    var tasks = await TaskManager.getRegisteredTasksAsync()
+    //var tasks = await TaskManager.getRegisteredTasksAsync()
   }
 
   getHolidaysAndStoreData = async (selectedCountries = selectedCountries, firstLaunch = this.state.firstLaunch, notifTime = this.state.notifTime, urlCache = this.state.urlCache) => {
@@ -151,10 +160,6 @@ export default class Main extends React.Component {
     ScheduleAllNotifications([], notifTime)
     _storeData('notifTime', JSON.stringify({'time':notifTime}))
     this.setState({notifTime: notifTime})
-
-    var d = new Date()
-    var lastUpdated = {date: d}
-    _storeData('lastUpdate', JSON.stringify(lastUpdated))
 
     this.setState({menuIconColor: buttonColor})
     this.stopLoading()
@@ -305,14 +310,17 @@ TaskManager.defineTask(UPDATE_HOLIDAYS_TASK_NAME, async () => {
   try {
     // check if it has been enough time since last update
     var lastUpdateDict = await _retrieveData('lastUpdate')
-    var lastUpdate = lastUpdateDict.date
-    lastUpdate = new Date(lastUpdate)
-    var days = 14 // update every 2 weeks
-    var nextUpdate = lastUpdate.setDate(lastUpdate.getDate() + days);
-    //var nextUpdate = lastUpdate.setHours(lastUpdate.getHours(),lastUpdate.getMinutes()+1,0,0) //For testing
-    var current = new Date()
+    if (lastUpdateDict != null) {
+      var lastUpdate = lastUpdateDict.date
+      lastUpdate = new Date(lastUpdate)
+      var days = 14 // update every 2 weeks
+      var nextUpdate = lastUpdate.setDate(lastUpdate.getDate() + days);
+      //var nextUpdate = lastUpdate.setHours(lastUpdate.getHours(),lastUpdate.getMinutes()+1,0,0) //For testing
+      var current = new Date()
+    }
 
-    if (current > nextUpdate) {
+    var current = new Date()
+    if (lastUpdateDict == null || current > nextUpdate) {
       // Pull async data
       var urlCache = {} // Want to incorporate updates by Calendarific to current holiday data
       var storedCountries = await _retrieveData('selectedCountries')
