@@ -7,24 +7,24 @@ The hope is that this app will help make the world a smaller place as we learn a
 <br>
 <p float="left">
   <img src="https://github.com/AmroShohoud/CulturesCalendar/blob/master/screenshots/pic3.png" width="250" />
-  <img src="https://github.com/AmroShohoud/CulturesCalendar/blob/master/screenshots/pic4.PNG" width="250" /> 
+  <img src="https://github.com/AmroShohoud/CulturesCalendar/blob/master/screenshots/pic4.png" width="250" /> 
 </p>
 
 ## Tap on a day for details on the holidays
 <br>
 <p float="left">
   <img src="https://github.com/AmroShohoud/CulturesCalendar/blob/master/screenshots/pic5.png" width="250" />
-  <img src="https://github.com/AmroShohoud/CulturesCalendar/blob/master/screenshots/pic6.PNG" width="250" /> 
-  <img src="https://github.com/AmroShohoud/CulturesCalendar/blob/master/screenshots/pic8.PNG" width="250" />
-  <img src="https://github.com/AmroShohoud/CulturesCalendar/blob/master/screenshots/pic9.PNG" width="250" />
-  <img src="https://github.com/AmroShohoud/CulturesCalendar/blob/master/screenshots/pic10.PNG" width="250" />
+  <img src="https://github.com/AmroShohoud/CulturesCalendar/blob/master/screenshots/pic6.png" width="250" /> 
+  <img src="https://github.com/AmroShohoud/CulturesCalendar/blob/master/screenshots/pic8.png" width="250" />
+  <img src="https://github.com/AmroShohoud/CulturesCalendar/blob/master/screenshots/pic9.png" width="250" />
+  <img src="https://github.com/AmroShohoud/CulturesCalendar/blob/master/screenshots/pic10.png" width="250" />
 </p>
 
 ## Choose from a large selection of countries
 <br>
 <p float="left">
   <img src="https://github.com/AmroShohoud/CulturesCalendar/blob/master/screenshots/pic1.png" width="250" />
-  <img src="https://github.com/AmroShohoud/CulturesCalendar/blob/master/screenshots/pic2.PNG" width="250" /> 
+  <img src="https://github.com/AmroShohoud/CulturesCalendar/blob/master/screenshots/pic2.png" width="250" /> 
 </p>
 
 ## Set notification times
